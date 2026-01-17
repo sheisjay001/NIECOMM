@@ -256,9 +256,6 @@ footer a {
 footer a:hover {
     color: white;
 }
-footer a:hover {
-    color: var(--primary);
-}
 
 /* Navigation - unified */
 
@@ -271,13 +268,12 @@ footer a:hover {
 .navbar .btn {
     border-radius: 8px;
 }
-/* Hero Section - keep single definition */
-}
 
 .hero h1 {
     font-weight: 700;
     margin-bottom: 1rem;
 }
+.hero p {
     font-size: 1.25rem;
     opacity: 0.9;
 }
