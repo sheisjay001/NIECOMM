@@ -271,8 +271,8 @@ h1, h2, h3, h4, h5, h6 {
 @media (max-width: 768px) {
     .hero-premium {
         min-height: auto;
-        padding-top: 100px;
-        padding-bottom: 80px;
+        padding-top: 40px;
+        padding-bottom: 60px;
         text-align: center;
     }
 
@@ -314,5 +314,27 @@ h1, h2, h3, h4, h5, h6 {
         border-radius: 1rem;
         box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         margin-top: 1rem;
+    }
+
+    /* Footer Mobile Alignment */
+    footer .col-lg-4, 
+    footer .col-lg-2, 
+    footer .col-md-6,
+    footer .text-md-end {
+        text-align: center !important;
+    }
+    
+    footer .text-end {
+        text-align: center !important;
+    }
+
+    footer .d-flex.gap-3 {
+        justify-content: center;
+    }
+    
+    /* Search Badges Wrap */
+    .hero-premium .badge-container {
+        justify-content: center;
+        flex-wrap: wrap;
     }
 }
