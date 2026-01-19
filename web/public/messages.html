@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - NIECOMM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .chat-list { height: 70vh; overflow-y: auto; }
+        .chat-box { height: 60vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .message-bubble { max-width: 75%; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; }
+        .message-sent { background-color: #0d6efd; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .message-received { background-color: #f1f3f5; color: black; align-self: flex-start; border-bottom-left-radius: 2px; }
+    </style>
+</head>
+<body class="bg-light">
+    
+    <div id="nav-placeholder"></div>
+
+    <div class="container py-4">
+        <h2 class="mb-4 fw-bold">Messages</h2>
+        <div class="row g-4">
+            <!-- Conversations List -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white fw-bold py-3">Conversations</div>
+                    <div class="list-group list-group-flush chat-list" id="conversation-list">
+                        <div class="text-center py-4 text-muted">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold" id="chat-partner-name">Select a conversation</span>
+                    </div>
+                    <div class="card-body bg-white">
+                        <div class="chat-box mb-3" id="chat-box">
+                            <div class="text-center text-muted mt-5">
+                                <i class="fas fa-comments fa-3x mb-3"></i>
+                                <p>Select a conversation to start chatting</p>
+                            </div>
+                        </div>
+                        <form id="message-form" class="d-flex gap-2 d-none">
+                            <input type="text" id="message-input" class="form-control" placeholder="Type a message..." required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        let currentPartnerId = null;
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadNav();
+            currentUser = checkAuth();
+            if (!currentUser) return;
+
+            loadConversations();
+
+            document.getElementById('message-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const content = document.getElementById('message-input').value;
+                if (!content || !currentPartnerId) return;
+
+                try {
+                    const res = await fetch('/api/messages', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sender_id: currentUser.id,
+                            receiver_id: currentPartnerId,
+                            content: content
+                        })
+                    });
+                    if (res.ok) {
+                        document.getElementById('message-input').value = '';
+                        loadChat(currentPartnerId); // Reload chat
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+        });
+
+        async function loadConversations() {
+            try {
+                const res = await fetch(`/api/messages?user_id=${currentUser.id}`);
+                const conversations = await res.json();
+                const list = document.getElementById('conversation-list');
+                
+                if (conversations.length === 0) {
+                    list.innerHTML = '<div class="text-center py-4 text-muted">No conversations yet.</div>';
+                    return;
+                }
+
+                list.innerHTML = conversations.map(c => `
+                    <a href="#" class="list-group-item list-group-item-action" onclick="openChat(${c.partner_id}, '${c.partner_name || 'User ' + c.partner_id}')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${c.partner_name || 'User ' + c.partner_id}</h6>
+                            <small class="text-muted">${new Date(c.last_time).toLocaleDateString()}</small>
+                        </div>
+                    </a>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function openChat(partnerId, partnerName) {
+            currentPartnerId = partnerId;
+            document.getElementById('chat-partner-name').textContent = partnerName;
+            document.getElementById('message-form').classList.remove('d-none');
+            loadChat(partnerId);
+        }
+
+        async function loadChat(partnerId) {
+            try {
+                const res = await fetch(`/api/messages?user_id=${currentUser.id}&partner_id=${partnerId}`);
+                const messages = await res.json();
+                const chatBox = document.getElementById('chat-box');
+                
+                chatBox.innerHTML = messages.map(m => `
+                    <div class="message-bubble ${m.sender_id === currentUser.id ? 'message-sent' : 'message-received'}">
+                        <div>${m.content}</div>
+                        <div class="text-end small opacity-75" style="font-size: 0.7rem;">${new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    </div>
+                `).join('');
+                
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>

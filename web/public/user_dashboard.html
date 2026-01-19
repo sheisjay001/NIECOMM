@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - NIECOMM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-theme="light">
+    <!-- Nav Placeholder -->
+    <div id="nav-placeholder"></div>
+
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">My Dashboard</h2>
+            <a href="products.html" class="btn btn-outline-primary">Browse Products</a>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Account</h5>
+                        <p class="mb-1"><strong id="user-name">Loading...</strong></p>
+                        <p class="text-muted mb-2" id="user-email">...</p>
+                        <a href="#" class="btn btn-outline-primary btn-sm mt-2">Edit Profile</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Orders</h5>
+                        <p class="display-6 mb-1" id="order-count">0</p>
+                        <p class="text-muted">Total orders placed</p>
+                        <a href="orders.html" class="btn btn-outline-primary btn-sm">View Orders</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Escrow Status</h5>
+                        <p class="text-muted small">Funds are held for 3 days to allow returns, then released after delivery confirmation.</p>
+                        <a href="products.html" class="btn btn-primary btn-sm">Make a Purchase</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <h4 class="mb-3">Recent Orders</h4>
+            <div class="table-responsive">
+                <table class="table" id="recent-orders-table">
+                    <thead>
+                        <tr>
+                            <th>Order Number</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-orders-body">
+                        <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadNav(); // Ensure nav is loaded
+            const user = checkAuth(); // Ensures user is logged in
+            if (!user) return;
+
+            document.getElementById('user-name').textContent = user.username;
+            document.getElementById('user-email').textContent = user.email;
+
+            try {
+                const res = await fetch(`/api/user/dashboard?user_id=${user.id}`);
+                const data = await res.json();
+                
+                document.getElementById('order-count').textContent = data.orderCount;
+                
+                const tbody = document.getElementById('recent-orders-body');
+                if (data.orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No recent orders.</td></tr>';
+                } else {
+                    tbody.innerHTML = data.orders.map(o => `
+                        <tr>
+                            <td>${o.order_number}</td>
+                            <td>₦${Number(o.total_amount).toLocaleString()}</td>
+                            <td><span class="badge bg-secondary">${o.status}</span></td>
+                            <td><span class="badge bg-info text-dark">${o.payment_status}</span></td>
+                            <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    </script>
+</body>
+</html>

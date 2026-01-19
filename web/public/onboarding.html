@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding - NIECOMM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light">
+    
+    <div id="nav-placeholder"></div>
+
+    <section class="py-5">
+        <div class="container">
+            <div class="mx-auto" style="max-width: 720px;">
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="mb-3">Create your account</h2>
+                        <div id="alert-box"></div>
+                        <form id="onboarding-form" class="row g-3 needs-validation" novalidate>
+                            <div class="col-md-6">
+                                <label class="form-label">Username</label>
+                                <input type="text" id="username" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" id="email" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Password</label>
+                                <input type="password" id="password" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Confirm Password</label>
+                                <input type="password" id="confirm" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone</label>
+                                <input type="text" id="phone" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">State</label>
+                                <select id="state" class="form-select" required>
+                                    <option value="" selected disabled>Select State</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Account Type</label>
+                                <select id="role" class="form-select" required>
+                                    <option value="user">Customer</option>
+                                    <option value="vendor">Vendor</option>
+                                </select>
+                            </div>
+                            <div class="col-12 d-flex justify-content-between align-items-center mt-4">
+                                <a href="login.html" class="text-decoration-none">Already have an account?</a>
+                                <button class="btn btn-primary px-4" type="submit">Sign up</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadNav();
+            
+            // Load States
+            try {
+                const res = await fetch('/api/states');
+                const states = await res.json();
+                const stateSelect = document.getElementById('state');
+                states.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = s.name;
+                    stateSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Failed to load states', err);
+            }
+
+            // Handle Submit
+            document.getElementById('onboarding-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const confirm = document.getElementById('confirm').value;
+                const phone = document.getElementById('phone').value;
+                const state = document.getElementById('state').value;
+                const role = document.getElementById('role').value;
+                const alertBox = document.getElementById('alert-box');
+
+                if (password !== confirm) {
+                    alertBox.innerHTML = '<div class="alert alert-danger">Passwords do not match</div>';
+                    return;
+                }
+
+                try {
+                    // Use the existing register API, but we might need to update it to accept phone/state
+                    // For now, we'll send what we can. 
+                    // Note: The current /api/auth/register in server.js doesn't handle phone/state.
+                    // We should update server.js to handle these extra fields if we want full parity.
+                    
+                    const res = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, email, password, role, phone, state_id: state })
+                    });
+                    const data = await res.json();
+                    
+                    if (res.ok) {
+                        alertBox.innerHTML = '<div class="alert alert-success">Registration successful! Please login.</div>';
+                        setTimeout(() => window.location.href = 'login.html', 1500);
+                    } else {
+                        alertBox.innerHTML = `<div class="alert alert-danger">${data.error || 'Registration failed'}</div>`;
+                    }
+                } catch (err) {
+                    alertBox.innerHTML = '<div class="alert alert-danger">An error occurred.</div>';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
