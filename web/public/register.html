@@ -83,9 +83,21 @@
         // Fetch States
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const res = await fetch('/api/states');
+                // Add timestamp to prevent caching
+                const res = await fetch('/api/states?v=' + new Date().getTime());
+                if (!res.ok) throw new Error('Failed to fetch states');
+                
                 const states = await res.json();
                 const select = document.getElementById('state_id');
+                
+                // Clear existing options except first
+                select.innerHTML = '<option value="">Select State</option>';
+                
+                if (states.length === 0) {
+                    console.warn('No states found in database');
+                    return;
+                }
+
                 states.forEach(state => {
                     const option = document.createElement('option');
                     option.value = state.id;
@@ -94,6 +106,8 @@
                 });
             } catch (err) {
                 console.error('Failed to load states', err);
+                // Fallback or Alert (Optional, but good for debugging)
+                // document.getElementById('state_id').innerHTML = '<option>Error loading states</option>';
             }
             
             // Handle URL params (e.g. ?role=vendor)
