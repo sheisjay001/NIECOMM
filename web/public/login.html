@@ -62,7 +62,20 @@
                 if (res.ok) {
                     localStorage.setItem('user', JSON.stringify(data.user));
                     alertBox.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
-                    setTimeout(() => window.location.href = '/', 1500);
+                    
+                    // Role-based redirection
+                    let redirectUrl = '/';
+                    if (data.user.role === 'vendor') {
+                        redirectUrl = 'vendor_dashboard.html';
+                    } else if (data.user.role === 'user') {
+                        redirectUrl = 'user_dashboard.html';
+                    } else if (data.user.role === 'admin') {
+                        redirectUrl = 'user_dashboard.html'; // Default admin to user dashboard for now
+                    } else {
+                        redirectUrl = 'user_dashboard.html'; // Default fallback
+                    }
+
+                    setTimeout(() => window.location.href = redirectUrl, 1500);
                 } else {
                     alertBox.innerHTML = `<div class="alert alert-danger">${data.error || 'Login failed'}</div>`;
                 }
