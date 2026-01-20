@@ -53,6 +53,23 @@
                 </div>
                 <h2 class="text-primary fw-bold mb-4" id="product-price">...</h2>
                 
+                <!-- Vendor & Location Info -->
+                <div class="card border-0 bg-light-subtle mb-4 rounded-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <h6 class="mb-0 me-2 fw-bold" id="vendor-name">...</h6>
+                            <span id="vendor-verified-badge"></span>
+                        </div>
+                        <p class="mb-1 small text-muted">
+                            <i class="fas fa-map-marker-alt me-1 text-danger"></i> 
+                            <span id="product-location">Loading location...</span>
+                        </p>
+                        <p class="mb-0 small text-success" id="shop-indicator" style="display: none;">
+                            <i class="fas fa-store me-1"></i> Physical Shop Verified
+                        </p>
+                    </div>
+                </div>
+
                 <p class="lead text-muted mb-4" id="product-desc">...</p>
 
                 <div class="d-flex gap-3 mb-5">
@@ -114,6 +131,35 @@
                 document.getElementById('product-desc').textContent = product.description;
                 document.getElementById('warranty-info').innerHTML = `<i class="fas fa-shield-alt me-1"></i> Warranty: ${product.warranty_period || 0} Months`;
                 
+                // Vendor Info
+                document.getElementById('vendor-name').textContent = product.vendor_name || 'Unknown Vendor';
+                document.getElementById('product-location').textContent = `${product.state_name || 'Nationwide'}${product.city_name ? ', ' + product.city_name : ''}`;
+                
+                if (product.distance_km !== null) {
+                    const dist = parseFloat(product.distance_km);
+                    const distEl = document.getElementById('distance-info');
+                    distEl.style.display = 'block';
+                    if (dist < 50) {
+                        distEl.innerHTML = `
+                            <span class="text-success fw-bold"><i class="fas fa-location-arrow me-1"></i> ${dist.toFixed(0)} km away (Nearby)</span>
+                            <div class="mt-2 p-2 bg-success-subtle rounded border border-success text-success small">
+                                <i class="fas fa-piggy-bank me-2"></i> <strong>Save Big:</strong> Low delivery fees or free pickup available!
+                            </div>
+                        `;
+                    } else {
+                        distEl.innerHTML = `<span class="text-muted"><i class="fas fa-location-arrow me-1"></i> ${dist.toFixed(0)} km away</span>`;
+                    }
+                }
+
+                if (product.is_verified) {
+                    document.getElementById('vendor-verified-badge').innerHTML = '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Verified</span>';
+                }
+                
+                if (product.shop_address) {
+                    document.getElementById('shop-indicator').style.display = 'block';
+                    document.getElementById('shop-indicator').title = `Shop: ${product.shop_address}`;
+                }
+
                 // Images
                 const images = [product.image, product.image2, product.image3].filter(img => img);
                 const carouselInner = document.getElementById('carousel-inner');

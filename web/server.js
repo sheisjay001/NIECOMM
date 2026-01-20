@@ -86,17 +86,53 @@ async function initDb() {
         // States Table
         await db.query(`CREATE TABLE IF NOT EXISTS states (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(100) NOT NULL UNIQUE
+            name VARCHAR(100) NOT NULL UNIQUE,
+            lat DECIMAL(10, 8),
+            lng DECIMAL(11, 8)
         )`);
+
+        // Add columns if not exist
+        try {
+            await db.query("ALTER TABLE states ADD COLUMN lat DECIMAL(10, 8)");
+            await db.query("ALTER TABLE states ADD COLUMN lng DECIMAL(11, 8)");
+        } catch (e) {}
 
         // Seed States (Sample)
         const [states] = await db.query('SELECT * FROM states');
         if (states.length === 0) {
-            const nigeriaStates = ['Lagos', 'Abuja', 'Kano', 'Rivers', 'Oyo', 'Kaduna', 'Enugu', 'Edo', 'Delta', 'Ogun'];
+            const nigeriaStates = [
+                { name: 'Lagos', lat: 6.5244, lng: 3.3792 },
+                { name: 'Abuja', lat: 9.0765, lng: 7.3986 },
+                { name: 'Kano', lat: 12.0022, lng: 8.5920 },
+                { name: 'Rivers', lat: 4.8156, lng: 7.0498 },
+                { name: 'Oyo', lat: 7.9350, lng: 3.9330 },
+                { name: 'Kaduna', lat: 10.5105, lng: 7.4165 },
+                { name: 'Enugu', lat: 6.4584, lng: 7.5464 },
+                { name: 'Edo', lat: 6.5244, lng: 5.8987 },
+                { name: 'Delta', lat: 5.5544, lng: 5.7932 },
+                { name: 'Ogun', lat: 6.9075, lng: 3.5813 }
+            ];
             for (const state of nigeriaStates) {
-                await db.query('INSERT INTO states (name) VALUES (?)', [state]);
+                await db.query('INSERT INTO states (name, lat, lng) VALUES (?, ?, ?)', [state.name, state.lat, state.lng]);
+            }
+        } else {
+            // Update existing states with coords if missing (Optional/For demo)
+            const updates = [
+                { name: 'Lagos', lat: 6.5244, lng: 3.3792 },
+                { name: 'Abuja', lat: 9.0765, lng: 7.3986 }
+            ];
+            for (const u of updates) {
+                await db.query('UPDATE states SET lat = ?, lng = ? WHERE name = ? AND lat IS NULL', [u.lat, u.lng, u.name]);
             }
         }
+
+        // Cities Table
+        await db.query(`CREATE TABLE IF NOT EXISTS cities (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            state_id INT NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            FOREIGN KEY (state_id) REFERENCES states(id) ON DELETE CASCADE
+        )`);
 
         // Users Table
         await db.query(`CREATE TABLE IF NOT EXISTS users (
@@ -323,11 +359,12 @@ app.get('/api/categories', async (req, res) => {
     }
 });
 
-// Products (Simple listing)
+// Products (with Location & Verification & Distance)
 app.get('/api/products', async (req, res) => {
     try {
         const conn = await getDb();
-        
+        const { state_id, city_id, user_lat, user_lng } = req.query;
+
         // Ensure table exists
         await conn.query(`CREATE TABLE IF NOT EXISTS products (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -341,11 +378,86 @@ app.get('/api/products', async (req, res) => {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        const [rows] = await conn.execute('SELECT * FROM products ORDER BY created_at DESC LIMIT 20');
+        let distanceCol = 'NULL as distance_km';
+        if (user_lat && user_lng) {
+            // Haversine Formula (approx) using State Coordinates
+            distanceCol = `
+                (6371 * acos(
+                    cos(radians(${user_lat})) * cos(radians(s.lat)) * cos(radians(s.lng) - radians(${user_lng})) +
+                    sin(radians(${user_lat})) * sin(radians(s.lat))
+                )) AS distance_km
+            `;
+        }
+
+        let query = `
+            SELECT p.*, 
+                   u.username as vendor_name, 
+                   u.is_verified, 
+                   u.shop_address,
+                   s.name as state_name,
+                   c.name as city_name,
+                   (SELECT COUNT(*) FROM orders WHERE status = 'delivered' AND id IN (SELECT order_id FROM order_items WHERE product_id = p.id)) as sales_count,
+                   ${distanceCol}
+            FROM products p
+            JOIN users u ON p.vendor_id = u.id
+            LEFT JOIN states s ON u.state_id = s.id
+            LEFT JOIN cities c ON u.city_id = c.id
+        `;
+        
+        const params = [];
+        const conditions = [];
+
+        if (state_id) {
+            conditions.push('u.state_id = ?');
+            params.push(state_id);
+        }
+        if (city_id) {
+            conditions.push('u.city_id = ?');
+            params.push(city_id);
+        }
+        
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
+        }
+        
+        // Sort by Verified first, then Distance (if available), then Newest
+        let orderBy = 'u.is_verified DESC';
+        if (user_lat && user_lng) {
+            orderBy += ', distance_km ASC';
+        }
+        orderBy += ', p.created_at DESC';
+        
+        query += ` ORDER BY ${orderBy} LIMIT 50`;
+
+        const [rows] = await conn.execute(query, params);
         await conn.end();
         res.json(rows);
     } catch (err) {
         console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get States
+app.get('/api/states', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute('SELECT * FROM states ORDER BY name');
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get Cities
+app.get('/api/states/:id/cities', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute('SELECT * FROM cities WHERE state_id = ? ORDER BY name', [req.params.id]);
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -392,12 +504,39 @@ app.get('/api/vendor/dashboard', async (req, res) => {
         const [prodRows] = await conn.execute('SELECT COUNT(*) as count FROM products WHERE vendor_id = ?', [userId]);
         const productCount = prodRows[0].count;
 
+        // Order Count (Items sold)
+        const [orderRows] = await conn.execute(`
+            SELECT COUNT(*) as count 
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            WHERE p.vendor_id = ?
+        `, [userId]);
+        const salesCount = orderRows[0].count;
+
+        // Pending Returns
+        const [returnRows] = await conn.execute(`
+            SELECT COUNT(*) as count 
+            FROM returns r
+            JOIN products p ON r.product_id = p.id
+            WHERE p.vendor_id = ? AND r.status = 'requested'
+        `, [userId]);
+        const pendingReturns = returnRows[0].count;
+
+        // Average Rating
+        const [ratingRows] = await conn.execute(`
+            SELECT AVG(rating) as avg_rating
+            FROM product_reviews pr
+            JOIN products p ON pr.product_id = p.id
+            WHERE p.vendor_id = ?
+        `, [userId]);
+        const avgRating = ratingRows[0].avg_rating || 0;
+
         // Verification Status
         const [verRows] = await conn.execute('SELECT status, created_at FROM vendor_verifications WHERE user_id = ? ORDER BY id DESC LIMIT 1', [userId]);
         const verification = verRows.length > 0 ? verRows[0] : null;
 
         await conn.end();
-        res.json({ isVerified, productCount, verification });
+        res.json({ isVerified, productCount, verification, salesCount, pendingReturns, avgRating });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -760,7 +899,7 @@ app.get('/api/orders', async (req, res) => {
     try {
         const conn = await getDb();
         const [rows] = await conn.execute(
-            'SELECT order_number, total_amount, status, payment_status, created_at FROM orders WHERE customer_id = ? ORDER BY id DESC',
+            'SELECT id, order_number, total_amount, status, payment_status, created_at FROM orders WHERE customer_id = ? ORDER BY id DESC',
             [userId]
         );
         await conn.end();
@@ -796,32 +935,44 @@ app.get('/api/vendor/orders', async (req, res) => {
     }
 });
 
-// Product Details
+// Product Details (Public)
 app.get('/api/products/:id', async (req, res) => {
     try {
         const conn = await getDb();
-        const [rows] = await conn.execute('SELECT * FROM products WHERE id = ?', [req.params.id]);
-        
-        if (rows.length === 0) {
-            await conn.end();
-            return res.status(404).json({ error: 'Product not found' });
+        const { user_lat, user_lng } = req.query;
+
+        let distanceCol = 'NULL as distance_km';
+        if (user_lat && user_lng) {
+            distanceCol = `
+                (6371 * acos(
+                    cos(radians(${user_lat})) * cos(radians(s.lat)) * cos(radians(s.lng) - radians(${user_lng})) +
+                    sin(radians(${user_lat})) * sin(radians(s.lat))
+                )) AS distance_km
+            `;
         }
-        
-        const product = rows[0];
-        
-        // Get Reviews
-        const [reviews] = await conn.execute(`
-            SELECT pr.*, u.username 
-            FROM product_reviews pr 
-            JOIN users u ON pr.user_id = u.id 
-            WHERE pr.product_id = ? 
-            ORDER BY pr.created_at DESC
+
+        const [rows] = await conn.execute(`
+            SELECT p.*, 
+                   u.username as vendor_name, 
+                   u.is_verified, 
+                   u.shop_address,
+                   s.name as state_name,
+                   c.name as city_name,
+                   (SELECT COUNT(*) FROM orders WHERE status = 'delivered' AND id IN (SELECT order_id FROM order_items WHERE product_id = p.id)) as sales_count,
+                   (SELECT AVG(rating) FROM product_reviews WHERE product_id = p.id) as rating,
+                   (SELECT COUNT(*) FROM product_reviews WHERE product_id = p.id) as review_count,
+                   ${distanceCol}
+            FROM products p
+            JOIN users u ON p.vendor_id = u.id
+            LEFT JOIN states s ON u.state_id = s.id
+            LEFT JOIN cities c ON u.city_id = c.id
+            WHERE p.id = ?
         `, [req.params.id]);
         
-        product.reviews = reviews;
-        
         await conn.end();
-        res.json(product);
+        
+        if (rows.length === 0) return res.status(404).json({ error: 'Product not found' });
+        res.json(rows[0]);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -847,19 +998,39 @@ app.post('/api/products/:id/reviews', async (req, res) => {
     }
 });
 
-// Request Return
+// Submit Return Request
 app.post('/api/returns', async (req, res) => {
-    const { order_id, user_id, product_id, reason } = req.body;
-    if (!order_id || !user_id || !product_id || !reason) {
-        return res.status(400).json({ error: 'All fields required' });
-    }
+    const { user_id, order_id, reason, return_method } = req.body;
     
+    if (!user_id || !order_id || !reason) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
     try {
         const conn = await getDb();
+        
+        // Ensure table exists
+        await conn.query(`CREATE TABLE IF NOT EXISTS returns (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            order_id INT NOT NULL,
+            product_id INT NULL, -- Can be null if returning whole order
+            reason TEXT NOT NULL,
+            status VARCHAR(50) DEFAULT 'requested', -- requested, approved, rejected, completed
+            return_method VARCHAR(50) DEFAULT 'pickup', -- pickup, dropoff
+            admin_notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        // Get first product from order for now (Simplification)
+        const [items] = await conn.execute('SELECT product_id FROM order_items WHERE order_id = ? LIMIT 1', [order_id]);
+        const productId = items.length > 0 ? items[0].product_id : null;
+
         await conn.execute(
-            'INSERT INTO returns (order_id, user_id, product_id, reason, status, created_at) VALUES (?, ?, ?, ?, "requested", NOW())',
-            [order_id, user_id, product_id, reason]
+            'INSERT INTO returns (user_id, order_id, product_id, reason, return_method, status, created_at) VALUES (?, ?, ?, ?, ?, "requested", NOW())',
+            [user_id, order_id, productId, reason, return_method || 'pickup']
         );
+        
         await conn.end();
         res.status(201).json({ message: 'Return requested successfully' });
     } catch (err) {

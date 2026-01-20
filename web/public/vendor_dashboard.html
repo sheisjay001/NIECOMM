@@ -62,21 +62,7 @@
                 </div>
 
                 <div class="row g-4">
-                    <div class="col-md-4">
-                        <div class="card h-100 shadow-sm border-0">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-light rounded p-2 me-3">
-                                        <i class="fas fa-check-circle text-success fa-2x"></i>
-                                    </div>
-                                    <h5 class="card-title mb-0">Verification</h5>
-                                </div>
-                                <p class="mb-2">Status: <strong id="ver-status">Checking...</strong></p>
-                                <a href="onboarding.html" class="btn btn-primary btn-sm w-100 mt-2">Update Info</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card h-100 shadow-sm border-0">
                             <div class="card-body">
                                 <div class="d-flex align-items-center mb-3">
@@ -86,21 +72,75 @@
                                     <h5 class="card-title mb-0">Products</h5>
                                 </div>
                                 <p class="display-6 mb-1 fw-bold" id="prod-count">0</p>
-                                <a href="vendor_products.html" class="btn btn-outline-primary btn-sm w-100 mt-2">Manage Products</a>
+                                <a href="vendor_products.html" class="btn btn-outline-primary btn-sm w-100 mt-2">Manage</a>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card h-100 shadow-sm border-0">
                             <div class="card-body">
                                 <div class="d-flex align-items-center mb-3">
                                     <div class="bg-light rounded p-2 me-3">
-                                        <i class="fas fa-chart-line text-info fa-2x"></i>
+                                        <i class="fas fa-shopping-cart text-success fa-2x"></i>
                                     </div>
-                                    <h5 class="card-title mb-0">Orders</h5>
+                                    <h5 class="card-title mb-0">Sales</h5>
                                 </div>
-                                <p class="mb-2 text-muted">Check your latest orders</p>
-                                <a href="orders.html" class="btn btn-outline-primary btn-sm w-100 mt-2">View Orders</a>
+                                <p class="display-6 mb-1 fw-bold" id="sales-count">0</p>
+                                <p class="small text-muted">Items Sold</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-light rounded p-2 me-3">
+                                        <i class="fas fa-undo text-danger fa-2x"></i>
+                                    </div>
+                                    <h5 class="card-title mb-0">Returns</h5>
+                                </div>
+                                <p class="display-6 mb-1 fw-bold" id="return-count">0</p>
+                                <p class="small text-muted">Pending Requests</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-light rounded p-2 me-3">
+                                        <i class="fas fa-star text-warning fa-2x"></i>
+                                    </div>
+                                    <h5 class="card-title mb-0">Rating</h5>
+                                </div>
+                                <p class="display-6 mb-1 fw-bold" id="avg-rating">0.0</p>
+                                <p class="small text-muted">Average</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mt-2">
+                     <div class="col-md-6">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Verification Status</h5>
+                                <p class="mb-2">Current Status: <strong id="ver-status" class="text-uppercase">Checking...</strong></p>
+                                <div class="alert alert-light border small">
+                                    <i class="fas fa-info-circle me-1"></i> Verified vendors get a badge and higher visibility.
+                                </div>
+                                <a href="onboarding.html" class="btn btn-primary w-100">Update Documents</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                         <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">Quick Actions</h5>
+                                <div class="d-grid gap-2">
+                                    <a href="vendor_products.html" class="btn btn-outline-dark"><i class="fas fa-plus me-2"></i> Add New Product</a>
+                                    <a href="orders.html" class="btn btn-outline-dark"><i class="fas fa-list me-2"></i> View Recent Orders</a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -133,6 +173,9 @@
 
                 document.getElementById('ver-status').textContent = data.verification ? data.verification.status : 'Not Started';
                 document.getElementById('prod-count').textContent = data.productCount;
+                document.getElementById('sales-count').textContent = data.salesCount || 0;
+                document.getElementById('return-count').textContent = data.pendingReturns || 0;
+                document.getElementById('avg-rating').textContent = Number(data.avgRating || 0).toFixed(1);
                 
             } catch (err) {
                 console.error(err);

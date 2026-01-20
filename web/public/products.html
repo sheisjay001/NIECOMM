@@ -27,41 +27,143 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => loadNav());
+        let userLocation = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadNav();
+            loadStates();
+            getUserLocation();
+            loadProducts();
+        });
+
+        function getUserLocation() {
+            // Check if user is logged in and has state (Optional: simulate from profile)
+            const user = JSON.parse(localStorage.getItem('user'));
+            // In a real app, we would use user.state_id to fetch coords or use browser geolocation
+            
+            // Try Browser Geolocation
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        // Reload products with distance
+                        loadProducts();
+                    },
+                    (error) => {
+                        console.log("Geolocation not allowed or failed", error);
+                    }
+                );
+            }
+        }
+
+        async function loadStates() {
+            try {
+                const res = await fetch('/api/states');
+                const states = await res.json();
+                const select = document.getElementById('state-filter');
+                select.innerHTML = '<option value="">All States</option>' + 
+                    states.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                
+                select.addEventListener('change', async (e) => {
+                    const stateId = e.target.value;
+                    const citySelect = document.getElementById('city-filter');
+                    
+                    if (!stateId) {
+                        citySelect.innerHTML = '<option value="">All Cities</option>';
+                        citySelect.disabled = true;
+                        return;
+                    }
+
+                    // Load cities
+                    /* Note: You need an API endpoint for cities by state */
+                    // For now, we just enable the filter trigger
+                });
+            } catch (err) {
+                console.error('Failed to load states', err);
+            }
+        }
 
         async function loadProducts() {
             try {
-                const res = await fetch('/api/products');
+                const stateId = document.getElementById('state-filter').value;
+                const cityId = document.getElementById('city-filter').value;
+                
+                let url = '/api/products';
+                const params = new URLSearchParams();
+                if (stateId) params.append('state_id', stateId);
+                if (cityId) params.append('city_id', cityId);
+                
+                if (userLocation) {
+                    params.append('user_lat', userLocation.lat);
+                    params.append('user_lng', userLocation.lng);
+                }
+                
+                if (params.toString()) url += '?' + params.toString();
+
+                const res = await fetch(url);
                 const products = await res.json();
                 const grid = document.getElementById('products-grid');
                 
                 if (products.length === 0) {
-                    grid.innerHTML = '<div class="col-12"><p class="text-center text-muted">No products found.</p></div>';
+                    grid.innerHTML = '<div class="col-12"><p class="text-center text-muted">No products found in this location.</p></div>';
                     return;
                 }
 
-                grid.innerHTML = products.map(p => `
+                grid.innerHTML = products.map(p => {
+                    let distanceBadge = '';
+                    if (p.distance_km !== null) {
+                        const dist = parseFloat(p.distance_km);
+                        let color = 'secondary';
+                        let text = `${dist.toFixed(0)} km`;
+                        let savings = '';
+                        
+                        if (dist < 50) { 
+                            color = 'success'; 
+                            text = 'Nearby (< 50km)';
+                            savings = `<div class="mt-1"><span class="badge bg-light text-success border border-success"><i class="fas fa-coins me-1"></i> Save ~₦2k Delivery</span></div>`;
+                        } else if (dist < 200) { 
+                            color = 'info'; 
+                            text = `${dist.toFixed(0)} km`; 
+                        }
+                        
+                        distanceBadge = `<div class="mb-2"><span class="badge bg-${color}"><i class="fas fa-location-arrow me-1"></i> ${text}</span>${savings}</div>`;
+                    }
+
+                    return `
                     <div class="col-md-3">
                         <div class="card h-100 border-0 shadow-sm hover-shadow">
-                            <img src="${p.image_url || 'https://via.placeholder.com/300'}" class="card-img-top" alt="${p.name}" style="height: 200px; object-fit: cover;">
+                            <div class="position-relative">
+                                <img src="${p.image_url || 'https://via.placeholder.com/300'}" class="card-img-top" alt="${p.name}" style="height: 200px; object-fit: cover;">
+                                ${p.is_verified ? '<span class="position-absolute top-0 end-0 badge bg-success m-2"><i class="fas fa-check-circle"></i> Verified</span>' : ''}
+                            </div>
                             <div class="card-body">
-                                <h5 class="card-title text-truncate">${p.name}</h5>
-                                <p class="card-text text-primary fw-bold">₦${Number(p.price).toLocaleString()}</p>
-                                <div class="d-flex gap-2">
+                                <h5 class="card-title text-truncate mb-1">${p.name}</h5>
+                                <p class="card-text text-primary fw-bold mb-1">₦${Number(p.price).toLocaleString()}</p>
+                                
+                                ${distanceBadge}
+
+                                <div class="small text-muted mb-2">
+                                    <i class="fas fa-map-marker-alt me-1"></i> ${p.state_name || 'Nationwide'}${p.city_name ? ', ' + p.city_name : ''}
+                                </div>
+                                
+                                ${p.sales_count > 0 ? `<div class="small text-success mb-2"><i class="fas fa-shopping-bag me-1"></i> ${p.sales_count} sold</div>` : ''}
+
+                                <div class="d-flex gap-2 mt-3">
                                     <a href="product_details.html?id=${p.id}" class="btn btn-sm btn-light border w-50">Details</a>
                                     <button onclick='addToCart(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="btn btn-sm btn-outline-primary w-50">Add</button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } catch (err) {
                 console.error(err);
                 document.getElementById('products-grid').innerHTML = '<div class="col-12"><p class="text-center text-danger">Failed to load products.</p></div>';
             }
         }
-        
-        loadProducts();
     </script>
 </body>
 </html>
