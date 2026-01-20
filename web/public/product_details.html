@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - NIECOMM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-theme="light">
+    <!-- Nav Placeholder -->
+    <div id="nav-placeholder"></div>
+
+    <div class="container py-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                <li class="breadcrumb-item"><a href="products.html">Products</a></li>
+                <li class="breadcrumb-item active" aria-current="page" id="breadcrumb-name">Loading...</li>
+            </ol>
+        </nav>
+
+        <div class="row g-5 mt-2">
+            <!-- Product Images -->
+            <div class="col-lg-6">
+                <div id="productCarousel" class="carousel slide shadow-sm rounded-4 overflow-hidden" data-bs-ride="carousel">
+                    <div class="carousel-inner" id="carousel-inner">
+                        <!-- Loaded dynamically -->
+                        <div class="carousel-item active">
+                            <div class="d-flex align-items-center justify-content-center bg-light" style="height: 400px;">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Info -->
+            <div class="col-lg-6">
+                <h1 class="fw-bold display-6 mb-2" id="product-name">...</h1>
+                <div class="mb-3">
+                    <span class="badge bg-success" id="stock-badge">In Stock</span>
+                    <span class="text-muted ms-2" id="warranty-info"><i class="fas fa-shield-alt me-1"></i> Warranty: 12 Months</span>
+                </div>
+                <h2 class="text-primary fw-bold mb-4" id="product-price">...</h2>
+                
+                <p class="lead text-muted mb-4" id="product-desc">...</p>
+
+                <div class="d-flex gap-3 mb-5">
+                    <input type="number" class="form-control" value="1" min="1" style="width: 80px;" id="qty-input">
+                    <button class="btn btn-premium-primary flex-grow-1" id="add-to-cart-btn">
+                        Add to Cart <i class="fas fa-shopping-cart ms-2"></i>
+                    </button>
+                </div>
+
+                <!-- Reviews Section -->
+                <div class="card border-0 bg-light rounded-4 p-4">
+                    <h4 class="fw-bold mb-3">Reviews</h4>
+                    <div id="reviews-container" class="mb-3" style="max-height: 300px; overflow-y: auto;">
+                        <p class="text-muted">No reviews yet.</p>
+                    </div>
+                    
+                    <form id="review-form" class="mt-3">
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">Write a review</label>
+                            <select class="form-select form-select-sm mb-2" id="review-rating" required>
+                                <option value="5">⭐⭐⭐⭐⭐ (Excellent)</option>
+                                <option value="4">⭐⭐⭐⭐ (Good)</option>
+                                <option value="3">⭐⭐⭐ (Average)</option>
+                                <option value="2">⭐⭐ (Poor)</option>
+                                <option value="1">⭐ (Terrible)</option>
+                            </select>
+                            <textarea class="form-control form-control-sm" id="review-comment" rows="2" placeholder="Share your experience..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-dark btn-sm rounded-pill">Post Review</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadNav();
+            
+            const params = new URLSearchParams(window.location.search);
+            const productId = params.get('id');
+            
+            if (!productId) {
+                window.location.href = 'products.html';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/products/${productId}`);
+                if (!res.ok) throw new Error('Product not found');
+                const product = await res.json();
+                
+                // Update UI
+                document.getElementById('breadcrumb-name').textContent = product.name;
+                document.getElementById('product-name').textContent = product.name;
+                document.getElementById('product-price').textContent = `₦${parseFloat(product.price).toLocaleString()}`;
+                document.getElementById('product-desc').textContent = product.description;
+                document.getElementById('warranty-info').innerHTML = `<i class="fas fa-shield-alt me-1"></i> Warranty: ${product.warranty_period || 0} Months`;
+                
+                // Images
+                const images = [product.image, product.image2, product.image3].filter(img => img);
+                const carouselInner = document.getElementById('carousel-inner');
+                if (images.length > 0) {
+                    carouselInner.innerHTML = images.map((img, i) => `
+                        <div class="carousel-item ${i === 0 ? 'active' : ''}">
+                            <img src="${img}" class="d-block w-100" alt="${product.name}" style="height: 400px; object-fit: cover;">
+                        </div>
+                    `).join('');
+                } else {
+                    carouselInner.innerHTML = `
+                        <div class="carousel-item active">
+                            <img src="https://via.placeholder.com/600x400?text=No+Image" class="d-block w-100" style="height: 400px; object-fit: cover;">
+                        </div>
+                    `;
+                }
+
+                // Reviews
+                const reviewsContainer = document.getElementById('reviews-container');
+                if (product.reviews && product.reviews.length > 0) {
+                    reviewsContainer.innerHTML = product.reviews.map(r => `
+                        <div class="mb-3 border-bottom pb-2">
+                            <div class="d-flex justify-content-between">
+                                <strong class="small">${r.username || 'User'}</strong>
+                                <span class="text-warning small">${'★'.repeat(r.rating)}</span>
+                            </div>
+                            <p class="mb-0 small text-muted">${r.comment}</p>
+                        </div>
+                    `).join('');
+                }
+
+                // Add to Cart
+                document.getElementById('add-to-cart-btn').onclick = () => {
+                    const qty = parseInt(document.getElementById('qty-input').value);
+                    const item = { ...product, quantity: qty }; // Override qty
+                    addToCart(item); // Function from main.js (assuming it handles qty override or we need to check)
+                    // Note: standard addToCart usually takes 1, we might need to modify it or call it loop
+                    // Actually, let's just check main.js addToCart logic later.
+                };
+
+                // Post Review
+                document.getElementById('review-form').onsubmit = async (e) => {
+                    e.preventDefault();
+                    const user = checkAuth(); // From main.js
+                    if (!user) {
+                        alert('Please login to review');
+                        window.location.href = 'login.html';
+                        return;
+                    }
+
+                    const rating = document.getElementById('review-rating').value;
+                    const comment = document.getElementById('review-comment').value;
+
+                    try {
+                        const revRes = await fetch(`/api/products/${productId}/reviews`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: user.id, rating, comment })
+                        });
+                        
+                        if (revRes.ok) {
+                            alert('Review posted!');
+                            window.location.reload();
+                        } else {
+                            alert('Failed to post review');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    }
+                };
+
+            } catch (err) {
+                console.error(err);
+                document.querySelector('.container').innerHTML = '<div class="alert alert-danger text-center">Product not found</div>';
+            }
+        });
+    </script>
+</body>
+</html>

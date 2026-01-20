@@ -98,11 +98,12 @@ function logout() {
 function addToCart(product) {
     let cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const existing = cart.find(p => p.id === product.id);
+    const qtyToAdd = product.quantity || 1;
     
     if (existing) {
-        existing.quantity += 1;
+        existing.quantity += qtyToAdd;
     } else {
-        cart.push({ ...product, quantity: 1 });
+        cart.push({ ...product, quantity: qtyToAdd });
     }
     
     localStorage.setItem('cart', JSON.stringify(cart));

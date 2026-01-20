@@ -13,6 +13,14 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
+// Security Headers
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    next();
+});
 app.use(bodyParser.json());
 // Initialize DB Middleware
 let dbInitialized = false;
@@ -125,6 +133,48 @@ async function initDb() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )`);
+
+        // Reviews Table
+        await db.query(`CREATE TABLE IF NOT EXISTS product_reviews (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            product_id INT NOT NULL,
+            user_id INT NOT NULL,
+            rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+            comment TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )`);
+
+        // Returns Table
+        await db.query(`CREATE TABLE IF NOT EXISTS returns (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            order_id INT NOT NULL,
+            user_id INT NOT NULL,
+            product_id INT NOT NULL,
+            reason TEXT NOT NULL,
+            status ENUM('requested', 'approved', 'rejected', 'refunded') DEFAULT 'requested',
+            admin_notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (order_id) REFERENCES orders(id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (product_id) REFERENCES products(id)
+        )`);
+
+        // Vendor Profiles (Bank Details) - Extending Users or separate table
+        // We will add columns to users table for simplicity as per current structure
+        try {
+            await db.query("ALTER TABLE users ADD COLUMN bank_name VARCHAR(100)");
+            await db.query("ALTER TABLE users ADD COLUMN account_number VARCHAR(20)");
+            await db.query("ALTER TABLE users ADD COLUMN account_name VARCHAR(100)");
+        } catch (e) {}
+
+        // Product Extras
+        try {
+            await db.query("ALTER TABLE products ADD COLUMN image2 VARCHAR(255)");
+            await db.query("ALTER TABLE products ADD COLUMN image3 VARCHAR(255)");
+            await db.query("ALTER TABLE products ADD COLUMN warranty_period INT DEFAULT 0"); // in months
+        } catch (e) {}
 
         await db.end();
         console.log('Database and tables checked/created');
@@ -595,6 +645,120 @@ app.get('/api/vendor/orders', async (req, res) => {
             ORDER BY o.created_at DESC
         `, [userId]);
         
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Product Details
+app.get('/api/products/:id', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute('SELECT * FROM products WHERE id = ?', [req.params.id]);
+        
+        if (rows.length === 0) {
+            await conn.end();
+            return res.status(404).json({ error: 'Product not found' });
+        }
+        
+        const product = rows[0];
+        
+        // Get Reviews
+        const [reviews] = await conn.execute(`
+            SELECT pr.*, u.username 
+            FROM product_reviews pr 
+            JOIN users u ON pr.user_id = u.id 
+            WHERE pr.product_id = ? 
+            ORDER BY pr.created_at DESC
+        `, [req.params.id]);
+        
+        product.reviews = reviews;
+        
+        await conn.end();
+        res.json(product);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Add Review
+app.post('/api/products/:id/reviews', async (req, res) => {
+    const { user_id, rating, comment } = req.body;
+    if (!user_id || !rating) return res.status(400).json({ error: 'Rating required' });
+    
+    try {
+        const conn = await getDb();
+        await conn.execute(
+            'INSERT INTO product_reviews (product_id, user_id, rating, comment, created_at) VALUES (?, ?, ?, ?, NOW())',
+            [req.params.id, user_id, rating, comment]
+        );
+        await conn.end();
+        res.status(201).json({ message: 'Review added' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Request Return
+app.post('/api/returns', async (req, res) => {
+    const { order_id, user_id, product_id, reason } = req.body;
+    if (!order_id || !user_id || !product_id || !reason) {
+        return res.status(400).json({ error: 'All fields required' });
+    }
+    
+    try {
+        const conn = await getDb();
+        await conn.execute(
+            'INSERT INTO returns (order_id, user_id, product_id, reason, status, created_at) VALUES (?, ?, ?, ?, "requested", NOW())',
+            [order_id, user_id, product_id, reason]
+        );
+        await conn.end();
+        res.status(201).json({ message: 'Return requested successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Update Vendor Profile (Bank Details)
+app.put('/api/vendor/profile', async (req, res) => {
+    const { user_id, bank_name, account_number, account_name } = req.body;
+    if (!user_id) return res.status(400).json({ error: 'Unauthorized' });
+    
+    try {
+        const conn = await getDb();
+        await conn.execute(
+            'UPDATE users SET bank_name = ?, account_number = ?, account_name = ? WHERE id = ?',
+            [bank_name, account_number, account_name, user_id]
+        );
+        await conn.end();
+        res.json({ message: 'Profile updated' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get User Returns
+app.get('/api/user/returns', async (req, res) => {
+    const userId = req.query.user_id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(`
+            SELECT r.*, p.name as product_name, o.order_number 
+            FROM returns r 
+            JOIN products p ON r.product_id = p.id 
+            JOIN orders o ON r.order_id = o.id 
+            WHERE r.user_id = ? 
+            ORDER BY r.created_at DESC
+        `, [userId]);
         await conn.end();
         res.json(rows);
     } catch (err) {

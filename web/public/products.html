@@ -47,7 +47,10 @@
                             <div class="card-body">
                                 <h5 class="card-title text-truncate">${p.name}</h5>
                                 <p class="card-text text-primary fw-bold">₦${Number(p.price).toLocaleString()}</p>
-                                <button onclick='addToCart(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="btn btn-sm btn-outline-primary w-100">Add to Cart</button>
+                                <div class="d-flex gap-2">
+                                    <a href="product_details.html?id=${p.id}" class="btn btn-sm btn-light border w-50">Details</a>
+                                    <button onclick='addToCart(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="btn btn-sm btn-outline-primary w-50">Add</button>
+                                </div>
                             </div>
                         </div>
                     </div>

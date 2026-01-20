@@ -68,6 +68,25 @@
                 </table>
             </div>
         </div>
+        <div class="mt-5">
+            <h4 class="mb-3">Recent Returns</h4>
+            <div class="table-responsive">
+                <table class="table" id="recent-returns-table">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Product</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-returns-body">
+                        <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -101,6 +120,26 @@
                         </tr>
                     `).join('');
                 }
+
+                // Fetch Returns
+                const returnsRes = await fetch(`/api/user/returns?user_id=${user.id}`);
+                const returnsData = await returnsRes.json();
+                const returnsBody = document.getElementById('recent-returns-body');
+                
+                if (returnsData.length === 0) {
+                    returnsBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No returns requested.</td></tr>';
+                } else {
+                    returnsBody.innerHTML = returnsData.map(r => `
+                        <tr>
+                            <td>${r.order_number}</td>
+                            <td>${r.product_name}</td>
+                            <td>${r.reason}</td>
+                            <td><span class="badge ${r.status === 'approved' ? 'bg-success' : 'bg-warning'}">${r.status}</span></td>
+                            <td>${new Date(r.created_at).toLocaleDateString()}</td>
+                        </tr>
+                    `).join('');
+                }
+
             } catch (err) {
                 console.error(err);
             }
