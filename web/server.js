@@ -97,32 +97,54 @@ async function initDb() {
             await db.query("ALTER TABLE states ADD COLUMN lng DECIMAL(11, 8)");
         } catch (e) {}
 
-        // Seed States (Sample)
-        const [states] = await db.query('SELECT * FROM states');
-        if (states.length === 0) {
-            const nigeriaStates = [
-                { name: 'Lagos', lat: 6.5244, lng: 3.3792 },
-                { name: 'Abuja', lat: 9.0765, lng: 7.3986 },
-                { name: 'Kano', lat: 12.0022, lng: 8.5920 },
-                { name: 'Rivers', lat: 4.8156, lng: 7.0498 },
-                { name: 'Oyo', lat: 7.9350, lng: 3.9330 },
-                { name: 'Kaduna', lat: 10.5105, lng: 7.4165 },
-                { name: 'Enugu', lat: 6.4584, lng: 7.5464 },
-                { name: 'Edo', lat: 6.5244, lng: 5.8987 },
-                { name: 'Delta', lat: 5.5544, lng: 5.7932 },
-                { name: 'Ogun', lat: 6.9075, lng: 3.5813 }
-            ];
-            for (const state of nigeriaStates) {
+        // Seed States (Full List)
+        const nigeriaStates = [
+            { name: 'Abia', lat: 5.4527, lng: 7.5248 },
+            { name: 'Adamawa', lat: 9.3265, lng: 12.3984 },
+            { name: 'Akwa Ibom', lat: 5.0515, lng: 7.8467 },
+            { name: 'Anambra', lat: 6.2209, lng: 6.9370 },
+            { name: 'Bauchi', lat: 10.7761, lng: 9.7008 },
+            { name: 'Bayelsa', lat: 4.7719, lng: 6.0699 },
+            { name: 'Benue', lat: 7.3369, lng: 8.7404 },
+            { name: 'Borno', lat: 11.8846, lng: 13.1520 },
+            { name: 'Cross River', lat: 5.8702, lng: 8.5988 },
+            { name: 'Delta', lat: 5.5544, lng: 5.7932 },
+            { name: 'Ebonyi', lat: 6.2649, lng: 8.0137 },
+            { name: 'Edo', lat: 6.5244, lng: 5.8987 },
+            { name: 'Ekiti', lat: 7.6304, lng: 5.2190 },
+            { name: 'Enugu', lat: 6.4584, lng: 7.5464 },
+            { name: 'Federal Capital Territory (FCT) – Abuja', lat: 9.0765, lng: 7.3986 },
+            { name: 'Gombe', lat: 10.2897, lng: 11.1673 },
+            { name: 'Imo', lat: 5.5720, lng: 7.0588 },
+            { name: 'Jigawa', lat: 12.2280, lng: 9.5616 },
+            { name: 'Kaduna', lat: 10.5105, lng: 7.4165 },
+            { name: 'Kano', lat: 12.0022, lng: 8.5920 },
+            { name: 'Katsina', lat: 12.9908, lng: 7.6000 },
+            { name: 'Kebbi', lat: 11.4942, lng: 4.2333 },
+            { name: 'Kogi', lat: 7.7337, lng: 6.6906 },
+            { name: 'Kwara', lat: 8.9669, lng: 4.6098 },
+            { name: 'Lagos', lat: 6.5244, lng: 3.3792 },
+            { name: 'Nasarawa', lat: 8.4998, lng: 8.1997 },
+            { name: 'Niger', lat: 9.9309, lng: 5.5983 },
+            { name: 'Ogun', lat: 6.9075, lng: 3.5813 },
+            { name: 'Ondo', lat: 7.2571, lng: 5.2058 },
+            { name: 'Osun', lat: 7.5629, lng: 4.5200 },
+            { name: 'Oyo', lat: 7.9350, lng: 3.9330 },
+            { name: 'Plateau', lat: 9.2182, lng: 9.5179 },
+            { name: 'Rivers', lat: 4.8156, lng: 7.0498 },
+            { name: 'Sokoto', lat: 13.0059, lng: 5.2476 },
+            { name: 'Taraba', lat: 8.8937, lng: 11.3614 },
+            { name: 'Yobe', lat: 12.0000, lng: 11.5000 },
+            { name: 'Zamfara', lat: 12.1628, lng: 6.6614 }
+        ];
+
+        // Rename Abuja to FCT if exists
+        await db.query("UPDATE states SET name = 'Federal Capital Territory (FCT) – Abuja' WHERE name = 'Abuja'");
+
+        for (const state of nigeriaStates) {
+            const [exists] = await db.query('SELECT id FROM states WHERE name = ?', [state.name]);
+            if (exists.length === 0) {
                 await db.query('INSERT INTO states (name, lat, lng) VALUES (?, ?, ?)', [state.name, state.lat, state.lng]);
-            }
-        } else {
-            // Update existing states with coords if missing (Optional/For demo)
-            const updates = [
-                { name: 'Lagos', lat: 6.5244, lng: 3.3792 },
-                { name: 'Abuja', lat: 9.0765, lng: 7.3986 }
-            ];
-            for (const u of updates) {
-                await db.query('UPDATE states SET lat = ?, lng = ? WHERE name = ? AND lat IS NULL', [u.lat, u.lng, u.name]);
             }
         }
 
