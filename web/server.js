@@ -259,6 +259,36 @@ async function initDb() {
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )`);
 
+        // Seed LGAs for Lagos (Sample)
+        const lagosState = await db.query("SELECT id FROM states WHERE name = 'Lagos'");
+        if (lagosState[0].length > 0) {
+            const lagosId = lagosState[0][0].id;
+            const lagosLgas = [
+                'Alimosho', 'Ajeromi-Ifelodun', 'Kosofe', 'Mushin', 'Oshodi-Isolo', 'Ojo', 'Ikorodu', 'Surulere', 'Agege', 
+                'Ifako-Ijaiye', 'Somolu', 'Amuwo-Odofin', 'Lagos Mainland', 'Ikeja', 'Eti-Osa', 'Badagry', 'Apapa', 'Lagos Island', 'Epe', 'Ibeju-Lekki'
+            ];
+            
+            for (const lga of lagosLgas) {
+                const [exists] = await db.query('SELECT id FROM lgas WHERE name = ? AND state_id = ?', [lga, lagosId]);
+                if (exists.length === 0) {
+                    await db.query('INSERT INTO lgas (state_id, name) VALUES (?, ?)', [lagosId, lga]);
+                }
+            }
+        }
+        
+        // Seed LGAs for FCT (Sample)
+        const fctState = await db.query("SELECT id FROM states WHERE name LIKE 'Federal Capital Territory%'");
+        if (fctState[0].length > 0) {
+            const fctId = fctState[0][0].id;
+            const fctLgas = ['Abaji', 'Bwari', 'Gwagwalada', 'Kuje', 'Kwali', 'Municipal Area Council'];
+            for (const lga of fctLgas) {
+                const [exists] = await db.query('SELECT id FROM lgas WHERE name = ? AND state_id = ?', [lga, fctId]);
+                if (exists.length === 0) {
+                    await db.query('INSERT INTO lgas (state_id, name) VALUES (?, ?)', [fctId, lga]);
+                }
+            }
+        }
+
         // Returns Table
         await db.query(`CREATE TABLE IF NOT EXISTS returns (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -303,7 +333,7 @@ async function getDb() {
 // API Routes
 
 // Login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', async ( req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
         return res.status(400).json({ error: 'Please enter email and password' });
@@ -343,14 +373,22 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Register
-app.post('/api/auth/register', async (req, res) => {
-    const { username, email, password, role, phone, state_id, city_id, shop_address, cac_number } = req.body;
+app.post('/api/auth/register', upload.any(), async (req, res) => {
+    // Note: upload.any() handles multipart/form-data
+    // Log the received body for debugging
+    console.log('Register Payload:', req.body);
+    
+    const { username, email, password, role, phone, state_id, city_id, lga_id, shop_address, cac_number } = req.body;
+    
     // Basic validation
+    // Ensure all REQUIRED fields for a basic user are present
     if (!username || !email || !password) {
+        console.log('Validation failed: Missing username, email, or password');
         return res.status(400).json({ error: 'All fields are required' });
     }
 
     if (role === 'vendor' && (!shop_address || !cac_number)) {
+        console.log('Validation failed: Vendor missing shop_address or cac_number');
         return res.status(400).json({ error: 'Vendors must provide Shop Address and CAC Number' });
     }
 
@@ -377,8 +415,8 @@ app.post('/api/auth/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         await conn.execute(
-            'INSERT INTO users (username, email, password, role_id, phone, state_id, city_id, shop_address, cac_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
-            [username, email, hashedPassword, roleId, phone || null, state_id || null, city_id || null, shop_address || null, cac_number || null]
+            'INSERT INTO users (username, email, password, role_id, phone, state_id, city_id, lga_id, shop_address, cac_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+            [username, email, hashedPassword, roleId, phone || null, state_id || null, city_id || null, lga_id || null, shop_address || null, cac_number || null]
         );
         
         await conn.end();
@@ -440,7 +478,7 @@ app.get('/api/categories', async (req, res) => {
 app.get('/api/products', async (req, res) => {
     try {
         const conn = await getDb();
-        const { state_id, city_id, user_lat, user_lng } = req.query;
+        const { state_id, city_id, lga_id, user_lat, user_lng } = req.query;
 
         // Ensure table exists
         await conn.query(`CREATE TABLE IF NOT EXISTS products (
@@ -471,14 +509,17 @@ app.get('/api/products', async (req, res) => {
                    u.username as vendor_name, 
                    u.is_verified, 
                    u.shop_address,
+                   u.lga_id,
                    s.name as state_name,
                    c.name as city_name,
+                   cat.name as category_name,
                    (SELECT COUNT(*) FROM orders WHERE status = 'delivered' AND id IN (SELECT order_id FROM order_items WHERE product_id = p.id)) as sales_count,
                    ${distanceCol}
             FROM products p
             JOIN users u ON p.vendor_id = u.id
             LEFT JOIN states s ON u.state_id = s.id
             LEFT JOIN cities c ON u.city_id = c.id
+            LEFT JOIN categories cat ON p.category_id = cat.id
         `;
         
         const params = [];
@@ -491,6 +532,10 @@ app.get('/api/products', async (req, res) => {
         if (city_id) {
             conditions.push('u.city_id = ?');
             params.push(city_id);
+        }
+        if (lga_id) {
+            conditions.push('u.lga_id = ?');
+            params.push(lga_id);
         }
         
         if (conditions.length > 0) {
@@ -532,6 +577,18 @@ app.get('/api/states/:id/cities', async (req, res) => {
     try {
         const conn = await getDb();
         const [rows] = await conn.execute('SELECT * FROM cities WHERE state_id = ? ORDER BY name', [req.params.id]);
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get LGAs
+app.get('/api/states/:id/lgas', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute('SELECT * FROM lgas WHERE state_id = ? ORDER BY name', [req.params.id]);
         await conn.end();
         res.json(rows);
     } catch (err) {

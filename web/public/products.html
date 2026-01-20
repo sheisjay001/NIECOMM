@@ -12,6 +12,28 @@
     <div id="nav-placeholder"></div>
 
     <div class="container py-5">
+        
+        <!-- Filters -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <select id="state-filter" class="form-select">
+                    <option value="">All States</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="lga-filter" class="form-select" disabled>
+                    <option value="">All LGAs</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="city-filter" class="form-select" disabled>
+                    <option value="">All Cities</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100" onclick="loadProducts()">Filter</button>
+            </div>
+        </div>
 
         <h2 class="mb-4">Marketplace</h2>
         <div class="row g-4" id="products-grid">
@@ -69,17 +91,24 @@
                 
                 select.addEventListener('change', async (e) => {
                     const stateId = e.target.value;
-                    const citySelect = document.getElementById('city-filter');
+                    const lgaSelect = document.getElementById('lga-filter');
                     
                     if (!stateId) {
-                        citySelect.innerHTML = '<option value="">All Cities</option>';
-                        citySelect.disabled = true;
+                        lgaSelect.innerHTML = '<option value="">All LGAs</option>';
+                        lgaSelect.disabled = true;
                         return;
                     }
 
-                    // Load cities
-                    /* Note: You need an API endpoint for cities by state */
-                    // For now, we just enable the filter trigger
+                    // Load LGAs
+                    try {
+                        const lgaRes = await fetch(`/api/states/${stateId}/lgas`);
+                        const lgas = await lgaRes.json();
+                        lgaSelect.innerHTML = '<option value="">All LGAs</option>' + 
+                            lgas.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                        lgaSelect.disabled = false;
+                    } catch (e) {
+                        console.error('Failed to load LGAs', e);
+                    }
                 });
             } catch (err) {
                 console.error('Failed to load states', err);
@@ -89,12 +118,12 @@
         async function loadProducts() {
             try {
                 const stateId = document.getElementById('state-filter').value;
-                const cityId = document.getElementById('city-filter').value;
+                const lgaId = document.getElementById('lga-filter').value;
                 
                 let url = '/api/products';
                 const params = new URLSearchParams();
                 if (stateId) params.append('state_id', stateId);
-                if (cityId) params.append('city_id', cityId);
+                if (lgaId) params.append('lga_id', lgaId);
                 
                 if (userLocation) {
                     params.append('user_lat', userLocation.lat);
