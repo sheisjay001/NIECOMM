@@ -55,18 +55,30 @@ const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'nigeriagadgetmart'
+    database: process.env.DB_NAME || 'nigeriagadgetmart',
+    port: process.env.DB_PORT || 3306,
+    ssl: { rejectUnauthorized: false }
 };
 
 async function initDb() {
     try {
-        const conn = await mysql.createConnection({
-            host: dbConfig.host,
-            user: dbConfig.user,
-            password: dbConfig.password
-        });
-        await conn.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\``);
-        await conn.end();
+        // Check if database exists/connectable
+        try {
+            const checkConn = await getDb();
+            await checkConn.end();
+        } catch (err) {
+            // If connection fails, try creating the database (for local dev)
+            console.log('Database connection failed, attempting to create database...', err.message);
+            const conn = await mysql.createConnection({
+                host: dbConfig.host,
+                user: dbConfig.user,
+                password: dbConfig.password,
+                port: dbConfig.port,
+                ssl: dbConfig.ssl
+            });
+            await conn.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\``);
+            await conn.end();
+        }
         
         // Create Tables
         const db = await getDb();

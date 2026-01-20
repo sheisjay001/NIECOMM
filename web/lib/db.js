@@ -7,7 +7,8 @@ export async function getConnection() {
     port: Number(DB_PORT || 3306),
     user: DB_USER || 'root',
     password: DB_PASSWORD || '',
-    database: DB_NAME || 'test'
+    database: DB_NAME || 'test',
+    ssl: { rejectUnauthorized: false }
   })
 }
 

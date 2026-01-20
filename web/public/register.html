@@ -106,8 +106,10 @@
                 });
             } catch (err) {
                 console.error('Failed to load states', err);
-                // Fallback or Alert (Optional, but good for debugging)
-                // document.getElementById('state_id').innerHTML = '<option>Error loading states</option>';
+                const alertBox = document.getElementById('alert-box');
+                if (alertBox) {
+                    alertBox.innerHTML = '<div class="alert alert-warning">Failed to load states. Please refresh or check connection.</div>';
+                }
             }
             
             // Handle URL params (e.g. ?role=vendor)
