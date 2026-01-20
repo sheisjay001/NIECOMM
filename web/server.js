@@ -461,6 +461,142 @@ app.delete('/api/vendor/products/:id', async (req, res) => {
     }
 });
 
+// Update Product
+app.put('/api/vendor/products/:id', upload.single('image'), async (req, res) => {
+    const userId = req.body.user_id; // Multipart form sends fields in body
+    const productId = req.params.id;
+    const { name, description, price, quantity, category_id } = req.body;
+    
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const conn = await getDb();
+        // Verify ownership
+        const [check] = await conn.execute('SELECT id, image FROM products WHERE id = ? AND vendor_id = ?', [productId, userId]);
+        if (check.length === 0) {
+            await conn.end();
+            return res.status(403).json({ error: 'Not authorized to edit this product' });
+        }
+
+        let imagePath = check[0].image;
+        if (req.file) {
+            imagePath = 'uploads/products/' + req.file.filename;
+        }
+
+        await conn.execute(
+            'UPDATE products SET name = ?, description = ?, price = ?, quantity = ?, category_id = ?, image = ? WHERE id = ?',
+            [name, description, price, quantity, category_id, imagePath, productId]
+        );
+        
+        await conn.end();
+        res.json({ message: 'Product updated' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin API Routes
+// ----------------
+
+// Admin Stats
+app.get('/api/admin/stats', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [users] = await conn.execute('SELECT COUNT(*) as count FROM users');
+        const [orders] = await conn.execute('SELECT COUNT(*) as count FROM orders');
+        const [products] = await conn.execute('SELECT COUNT(*) as count FROM products');
+        const [pendingVendors] = await conn.execute("SELECT COUNT(*) as count FROM vendor_verifications WHERE status = 'pending'");
+        const [pendingReturns] = await conn.execute("SELECT COUNT(*) as count FROM returns WHERE status = 'requested'");
+        
+        await conn.end();
+        res.json({
+            users: users[0].count,
+            orders: orders[0].count,
+            products: products[0].count,
+            pendingVendors: pendingVendors[0].count,
+            pendingReturns: pendingReturns[0].count
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Get Pending Verifications
+app.get('/api/admin/verifications', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(`
+            SELECT vv.*, u.username, u.email, u.shop_address, u.cac_number 
+            FROM vendor_verifications vv 
+            JOIN users u ON vv.user_id = u.id 
+            WHERE vv.status = 'pending'
+        `);
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Approve/Reject Verification
+app.post('/api/admin/verifications/:id', async (req, res) => {
+    const { status, user_id } = req.body; // status: 'approved' | 'rejected'
+    if (!['approved', 'rejected'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+
+    try {
+        const conn = await getDb();
+        await conn.execute('UPDATE vendor_verifications SET status = ? WHERE id = ?', [status, req.params.id]);
+        
+        if (status === 'approved') {
+            await conn.execute('UPDATE users SET is_verified = TRUE WHERE id = ?', [user_id]);
+        }
+        
+        await conn.end();
+        res.json({ message: `Verification ${status}` });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Get Returns
+app.get('/api/admin/returns', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(`
+            SELECT r.*, u.username, p.name as product_name, o.order_number 
+            FROM returns r 
+            JOIN users u ON r.user_id = u.id 
+            JOIN products p ON r.product_id = p.id 
+            JOIN orders o ON r.order_id = o.id 
+            ORDER BY r.created_at DESC
+        `);
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Update Return Status
+app.post('/api/admin/returns/:id', async (req, res) => {
+    const { status, admin_notes } = req.body;
+    
+    try {
+        const conn = await getDb();
+        await conn.execute('UPDATE returns SET status = ?, admin_notes = ? WHERE id = ?', [status, admin_notes, req.params.id]);
+        await conn.end();
+        res.json({ message: 'Return status updated' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Messages API
 app.get('/api/messages', async (req, res) => {
     const userId = req.query.user_id;
