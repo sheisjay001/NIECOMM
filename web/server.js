@@ -178,6 +178,7 @@ async function initDb() {
             phone VARCHAR(20),
             state_id INT,
             city_id INT,
+            lga_id INT,
             shop_address VARCHAR(255),
             cac_number VARCHAR(50),
             is_verified BOOLEAN DEFAULT FALSE,
@@ -191,6 +192,15 @@ async function initDb() {
         } catch (e) {}
         try {
             await db.query("ALTER TABLE users ADD COLUMN cac_number VARCHAR(50)");
+        } catch (e) {}
+        try {
+            await db.query("ALTER TABLE users ADD COLUMN lga_id INT");
+        } catch (e) {}
+        try {
+            await db.query("ALTER TABLE users ADD COLUMN role_id INT");
+        } catch (e) {}
+        try {
+            await db.query("ALTER TABLE users ADD COLUMN phone VARCHAR(20)");
         } catch (e) {}
         
         // Vendor Verifications Table
