@@ -289,20 +289,27 @@ app.get('/api/categories', async (req, res) => {
 
         const [rows] = await conn.execute('SELECT * FROM categories ORDER BY name');
         
-        if (rows.length === 0) {
-             // Seed categories
-             const cats = [
-                ['Phones', 'fa-mobile-alt'],
-                ['Laptops', 'fa-laptop'],
-                ['Accessories', 'fa-headphones'],
-                ['Tablets', 'fa-tablet-alt'],
-                ['Smartwatches', 'fa-clock'],
-                ['Gaming', 'fa-gamepad']
-             ];
-             for (const cat of cats) {
-                 await conn.execute('INSERT INTO categories (name, icon) VALUES (?, ?)', cat);
-             }
-             // Re-fetch
+        // Check and seed new categories if they don't exist
+        const defaultCats = [
+            ['Phones', 'fa-mobile-alt'],
+            ['Laptops', 'fa-laptop'],
+            ['Accessories', 'fa-headphones'],
+            ['Tablets', 'fa-tablet-alt'],
+            ['Smartwatches', 'fa-clock'],
+            ['Gaming', 'fa-gamepad']
+        ];
+
+        let hasNew = false;
+        const existingNames = rows.map(r => r.name);
+        
+        for (const cat of defaultCats) {
+            if (!existingNames.includes(cat[0])) {
+                await conn.execute('INSERT INTO categories (name, icon) VALUES (?, ?)', cat);
+                hasNew = true;
+            }
+        }
+        
+        if (hasNew || rows.length === 0) {
              const [newRows] = await conn.execute('SELECT * FROM categories ORDER BY name');
              await conn.end();
              return res.json(newRows);
