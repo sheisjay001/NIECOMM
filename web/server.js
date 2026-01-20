@@ -75,6 +75,21 @@ async function initDb() {
             await db.query("INSERT INTO roles (name) VALUES ('admin'), ('user'), ('vendor')");
         }
 
+        // States Table
+        await db.query(`CREATE TABLE IF NOT EXISTS states (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL UNIQUE
+        )`);
+
+        // Seed States (Sample)
+        const [states] = await db.query('SELECT * FROM states');
+        if (states.length === 0) {
+            const nigeriaStates = ['Lagos', 'Abuja', 'Kano', 'Rivers', 'Oyo', 'Kaduna', 'Enugu', 'Edo', 'Delta', 'Ogun'];
+            for (const state of nigeriaStates) {
+                await db.query('INSERT INTO states (name) VALUES (?)', [state]);
+            }
+        }
+
         // Users Table
         await db.query(`CREATE TABLE IF NOT EXISTS users (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -85,10 +100,20 @@ async function initDb() {
             phone VARCHAR(20),
             state_id INT,
             city_id INT,
+            shop_address VARCHAR(255),
+            cac_number VARCHAR(50),
             is_verified BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (role_id) REFERENCES roles(id)
         )`);
+
+        // Attempt to add columns if they don't exist (for existing DBs)
+        try {
+            await db.query("ALTER TABLE users ADD COLUMN shop_address VARCHAR(255)");
+        } catch (e) {}
+        try {
+            await db.query("ALTER TABLE users ADD COLUMN cac_number VARCHAR(50)");
+        } catch (e) {}
         
         // Vendor Verifications Table
         await db.query(`CREATE TABLE IF NOT EXISTS vendor_verifications (
@@ -156,10 +181,14 @@ app.post('/api/auth/login', async (req, res) => {
 
 // Register
 app.post('/api/auth/register', async (req, res) => {
-    const { username, email, password, role, phone, state_id, city_id } = req.body;
+    const { username, email, password, role, phone, state_id, city_id, shop_address, cac_number } = req.body;
     // Basic validation
     if (!username || !email || !password) {
         return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    if (role === 'vendor' && (!shop_address || !cac_number)) {
+        return res.status(400).json({ error: 'Vendors must provide Shop Address and CAC Number' });
     }
 
     try {
@@ -185,8 +214,8 @@ app.post('/api/auth/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         await conn.execute(
-            'INSERT INTO users (username, email, password, role_id, phone, state_id, city_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
-            [username, email, hashedPassword, roleId, phone || null, state_id || null, city_id || null]
+            'INSERT INTO users (username, email, password, role_id, phone, state_id, city_id, shop_address, cac_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+            [username, email, hashedPassword, roleId, phone || null, state_id || null, city_id || null, shop_address || null, cac_number || null]
         );
         
         await conn.end();
