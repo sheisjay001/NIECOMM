@@ -175,6 +175,44 @@ async function initDb() {
             await db.query("ALTER TABLE vendor_verifications ADD COLUMN shop_image_path VARCHAR(255)");
         } catch (e) {}
 
+        // Products Table
+        await db.query(`CREATE TABLE IF NOT EXISTS products (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            vendor_id INT NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            description TEXT,
+            price DECIMAL(10,2) NOT NULL,
+            quantity INT DEFAULT 0,
+            category_id INT,
+            image VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES users(id)
+        )`);
+
+        // Orders Table
+        await db.query(`CREATE TABLE IF NOT EXISTS orders (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            order_number VARCHAR(50) NOT NULL UNIQUE,
+            customer_id INT NOT NULL,
+            total_amount DECIMAL(10, 2) NOT NULL,
+            shipping_address TEXT NOT NULL,
+            status ENUM('processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'processing',
+            payment_status ENUM('pending', 'paid', 'held', 'failed') DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES users(id)
+        )`);
+
+        // Order Items Table
+        await db.query(`CREATE TABLE IF NOT EXISTS order_items (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            order_id INT NOT NULL,
+            product_id INT NOT NULL,
+            quantity INT NOT NULL,
+            price DECIMAL(10, 2) NOT NULL,
+            FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+            FOREIGN KEY (product_id) REFERENCES products(id)
+        )`);
+
         // Reviews Table
         await db.query(`CREATE TABLE IF NOT EXISTS product_reviews (
             id INT AUTO_INCREMENT PRIMARY KEY,
