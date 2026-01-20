@@ -220,16 +220,21 @@
                     return;
                 }
 
-                container.innerHTML = categories.map(cat => `
-                    <div class="col-6 col-md-4 col-lg-2">
-                        <div class="category-pill h-100 d-flex flex-column align-items-center justify-content-center" onclick="window.location.href='products.html?category=${cat.id}'">
-                            <div class="category-icon">
-                                <i class="fas ${cat.icon || 'fa-box'}"></i>
+                container.innerHTML = categories.map((cat, index) => {
+                    const iconHtml = cat.icon && cat.icon.startsWith('fa-') 
+                        ? `<i class="fas ${cat.icon} fa-lg text-primary"></i>`
+                        : `<img src="${cat.icon || 'img/icons/default.png'}" alt="" style="width: 30px; height: 30px; object-fit: contain;">`;
+
+                    return `
+                    <div class="col-6 col-md-4 col-lg-2 fade-up" style="animation-delay: ${index * 0.1}s">
+                        <div class="category-card text-center p-4 rounded-4 bg-light h-100 transition-all">
+                            <div class="icon-box mb-3 mx-auto bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 60px; height: 60px;">
+                                ${iconHtml}
                             </div>
                             <h6 class="fw-bold m-0 text-dark small">${cat.name}</h6>
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } catch (err) {
                 console.error('Error fetching categories:', err);
             }
