@@ -112,57 +112,57 @@
         function toggleVendorFields() {
             const role = document.getElementById('role').value;
             const vendorFields = document.getElementById('vendor-fields');
+            const requiredFields = ['shop_address', 'cac_number', 'cac_certificate', 'shop_image'];
+            
             if (role === 'vendor') {
                 vendorFields.style.display = 'block';
-                document.getElementById('shop_address').setAttribute('required', 'required');
-                document.getElementById('cac_number').setAttribute('required', 'required');
+                requiredFields.forEach(id => document.getElementById(id).setAttribute('required', 'required'));
             } else {
                 vendorFields.style.display = 'none';
-                document.getElementById('shop_address').removeAttribute('required');
-                document.getElementById('cac_number').removeAttribute('required');
+                requiredFields.forEach(id => document.getElementById(id).removeAttribute('required'));
             }
         }
 
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const username = document.getElementById('username').value;
-            const email = document.getElementById('email').value;
+            const alertBox = document.getElementById('alert-box');
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
-            const role = document.getElementById('role').value;
-            const state_id = document.getElementById('state_id').value;
-            const shop_address = document.getElementById('shop_address').value;
-            const cac_number = document.getElementById('cac_number').value;
-            const alertBox = document.getElementById('alert-box');
-
+            
             if (password !== confirmPassword) {
                 alertBox.innerHTML = '<div class="alert alert-danger">Passwords do not match</div>';
                 return;
             }
 
+            const formData = new FormData();
+            formData.append('username', document.getElementById('username').value);
+            formData.append('email', document.getElementById('email').value);
+            formData.append('password', password);
+            formData.append('role', document.getElementById('role').value);
+            formData.append('state_id', document.getElementById('state_id').value);
+            
+            if (document.getElementById('role').value === 'vendor') {
+                formData.append('shop_address', document.getElementById('shop_address').value);
+                formData.append('cac_number', document.getElementById('cac_number').value);
+                formData.append('cac_certificate', document.getElementById('cac_certificate').files[0]);
+                formData.append('shop_image', document.getElementById('shop_image').files[0]);
+            }
+
             try {
                 const res = await fetch('/api/auth/register', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        username, 
-                        email, 
-                        password, 
-                        role, 
-                        state_id, 
-                        shop_address: role === 'vendor' ? shop_address : null,
-                        cac_number: role === 'vendor' ? cac_number : null
-                    })
+                    body: formData // Send as FormData (multipart/form-data)
                 });
                 const data = await res.json();
                 
                 if (res.ok) {
                     alertBox.innerHTML = '<div class="alert alert-success">Registration successful! Please login.</div>';
-                    setTimeout(() => window.location.href = '/login.html', 1500);
+                    setTimeout(() => window.location.href = 'login.html', 1500);
                 } else {
                     alertBox.innerHTML = `<div class="alert alert-danger">${data.error || 'Registration failed'}</div>`;
                 }
             } catch (err) {
+                console.error(err);
                 alertBox.innerHTML = '<div class="alert alert-danger">An error occurred. Please try again.</div>';
             }
         });

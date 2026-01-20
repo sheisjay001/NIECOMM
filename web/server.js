@@ -163,12 +163,17 @@ async function initDb() {
         await db.query(`CREATE TABLE IF NOT EXISTS vendor_verifications (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT NOT NULL,
-            document_type VARCHAR(50),
-            document_path VARCHAR(255),
+            cac_certificate_path VARCHAR(255),
+            shop_image_path VARCHAR(255),
             status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )`);
+
+        try {
+            await db.query("ALTER TABLE vendor_verifications ADD COLUMN cac_certificate_path VARCHAR(255)");
+            await db.query("ALTER TABLE vendor_verifications ADD COLUMN shop_image_path VARCHAR(255)");
+        } catch (e) {}
 
         // Reviews Table
         await db.query(`CREATE TABLE IF NOT EXISTS product_reviews (
