@@ -108,14 +108,17 @@
                 
                 const tbody = document.getElementById('recent-orders-body');
                 if (data.orders.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No recent orders.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No recent orders found.</td></tr>';
                 } else {
                     tbody.innerHTML = data.orders.map(o => `
                         <tr>
-                            <td>${o.order_number}</td>
+                            <td class="ps-3 fw-bold">#${o.order_number}</td>
                             <td>₦${Number(o.total_amount).toLocaleString()}</td>
-                            <td><span class="badge bg-secondary">${o.status}</span></td>
-                            <td><span class="badge bg-info text-dark">${o.payment_status}</span></td>
+                            <td>
+                                <span class="badge rounded-pill ${o.status === 'delivered' ? 'bg-success' : 'bg-warning text-dark'}">
+                                    ${o.status}
+                                </span>
+                            </td>
                             <td>${new Date(o.created_at).toLocaleDateString()}</td>
                         </tr>
                     `).join('');
@@ -127,15 +130,19 @@
                 const returnsBody = document.getElementById('recent-returns-body');
                 
                 if (returnsData.length === 0) {
-                    returnsBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No returns requested.</td></tr>';
+                    returnsBody.innerHTML = '<tr><td colspan="2" class="text-center text-muted py-4">No returns requested.</td></tr>';
                 } else {
                     returnsBody.innerHTML = returnsData.map(r => `
                         <tr>
-                            <td>${r.order_number}</td>
-                            <td>${r.product_name}</td>
-                            <td>${r.reason}</td>
-                            <td><span class="badge ${r.status === 'approved' ? 'bg-success' : 'bg-warning'}">${r.status}</span></td>
-                            <td>${new Date(r.created_at).toLocaleDateString()}</td>
+                            <td class="ps-3">
+                                <div class="fw-bold">${r.product_name}</div>
+                                <small class="text-muted">#${r.order_number}</small>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill ${r.status === 'approved' ? 'bg-success' : 'bg-secondary'}">
+                                    ${r.status}
+                                </span>
+                            </td>
                         </tr>
                     `).join('');
                 }

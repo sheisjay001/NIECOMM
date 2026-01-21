@@ -6,10 +6,19 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const fs = require('fs');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: { error: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+app.use('/api/', limiter); // Apply to API routes
 
 // Middleware
 app.use(cors());

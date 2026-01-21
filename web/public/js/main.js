@@ -109,6 +109,55 @@ function logout() {
     window.location.href = '/login.html';
 }
 
+// Toast Notification System
+function showToast(message, type = 'success') {
+    // Create toast container if it doesn't exist
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999;';
+        document.body.appendChild(container);
+    }
+
+    // Create toast element
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? '#34C759' : (type === 'error' ? '#FF3B30' : '#0071E3');
+    const icon = type === 'success' ? '<i class="fas fa-check-circle me-2"></i>' : (type === 'error' ? '<i class="fas fa-exclamation-circle me-2"></i>' : '<i class="fas fa-info-circle me-2"></i>');
+    
+    toast.className = 'toast-notification shadow-lg';
+    toast.style.cssText = `
+        background-color: ${bgColor};
+        color: white;
+        padding: 16px 24px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        font-weight: 500;
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        min-width: 300px;
+    `;
+    toast.innerHTML = `${icon} ${message}`;
+
+    container.appendChild(toast);
+
+    // Animate in
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+    });
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        setTimeout(() => toast.remove(), 400);
+    }, 3000);
+}
+
 // Cart Functions
 function addToCart(product) {
     let cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -123,7 +172,7 @@ function addToCart(product) {
     
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
-    alert('Added to cart!');
+    showToast('Product added to cart successfully!', 'success');
 }
 
 function updateCartCount() {

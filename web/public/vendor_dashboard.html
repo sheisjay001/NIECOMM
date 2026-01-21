@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-light">
     
@@ -27,27 +28,27 @@
                 </div>
                 <ul class="nav flex-column gap-2">
                     <li class="nav-item">
-                        <a href="vendor_dashboard.html" class="nav-link active bg-primary text-white rounded">
+                        <a href="vendor_dashboard.html" class="nav-link active btn-premium-primary text-white rounded text-start mb-2">
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="vendor_products.html" class="nav-link text-dark">
+                        <a href="vendor_products.html" class="nav-link text-dark hover-bg-light rounded mb-2">
                             <i class="fas fa-box me-2"></i> Products
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="orders.html" class="nav-link text-dark">
+                        <a href="orders.html" class="nav-link text-dark hover-bg-light rounded mb-2">
                             <i class="fas fa-shopping-bag me-2"></i> Orders
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="messages.html" class="nav-link text-dark">
+                        <a href="messages.html" class="nav-link text-dark hover-bg-light rounded mb-2">
                             <i class="fas fa-envelope me-2"></i> Messages
                         </a>
                     </li>
                     <li class="nav-item mt-4">
-                        <a href="#" onclick="logout()" class="nav-link text-danger">
+                        <a href="#" onclick="logout()" class="nav-link text-danger hover-bg-light rounded">
                             <i class="fas fa-sign-out-alt me-2"></i> Logout
                         </a>
                     </li>
@@ -57,90 +58,108 @@
             <!-- Main Content -->
             <div class="col-md-9 col-lg-9">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="fw-bold">Overview</h2>
+                    <div>
+                        <h2 class="fw-bold mb-1">Overview</h2>
+                        <p class="text-muted mb-0">Welcome back, here's what's happening with your store.</p>
+                    </div>
                     <div id="verified-badge"></div>
                 </div>
 
-                <div class="row g-4">
+                <!-- Stats Cards -->
+                <div class="row g-4 mb-4">
                     <div class="col-md-3">
-                        <div class="card h-100 shadow-sm border-0">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-light rounded p-2 me-3">
-                                        <i class="fas fa-box text-primary fa-2x"></i>
-                                    </div>
-                                    <h5 class="card-title mb-0">Products</h5>
+                        <div class="card-premium h-100 p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <p class="text-muted small mb-1">Total Products</p>
+                                    <h3 class="fw-bold mb-0" id="prod-count">0</h3>
                                 </div>
-                                <p class="display-6 mb-1 fw-bold" id="prod-count">0</p>
-                                <a href="vendor_products.html" class="btn btn-outline-primary btn-sm w-100 mt-2">Manage</a>
+                                <div class="bg-primary bg-opacity-10 p-2 rounded-circle">
+                                    <i class="fas fa-box text-primary"></i>
+                                </div>
                             </div>
+                            <a href="vendor_products.html" class="small text-decoration-none">Manage Inventory &rarr;</a>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card h-100 shadow-sm border-0">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-light rounded p-2 me-3">
-                                        <i class="fas fa-shopping-cart text-success fa-2x"></i>
-                                    </div>
-                                    <h5 class="card-title mb-0">Sales</h5>
+                        <div class="card-premium h-100 p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <p class="text-muted small mb-1">Total Sales</p>
+                                    <h3 class="fw-bold mb-0" id="sales-count">0</h3>
                                 </div>
-                                <p class="display-6 mb-1 fw-bold" id="sales-count">0</p>
-                                <p class="small text-muted">Items Sold</p>
+                                <div class="bg-success bg-opacity-10 p-2 rounded-circle">
+                                    <i class="fas fa-shopping-cart text-success"></i>
+                                </div>
                             </div>
+                            <span class="small text-success"><i class="fas fa-arrow-up"></i> +12% this week</span>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card h-100 shadow-sm border-0">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-light rounded p-2 me-3">
-                                        <i class="fas fa-undo text-danger fa-2x"></i>
-                                    </div>
-                                    <h5 class="card-title mb-0">Returns</h5>
+                        <div class="card-premium h-100 p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <p class="text-muted small mb-1">Pending Returns</p>
+                                    <h3 class="fw-bold mb-0" id="return-count">0</h3>
                                 </div>
-                                <p class="display-6 mb-1 fw-bold" id="return-count">0</p>
-                                <p class="small text-muted">Pending Requests</p>
+                                <div class="bg-danger bg-opacity-10 p-2 rounded-circle">
+                                    <i class="fas fa-undo text-danger"></i>
+                                </div>
                             </div>
+                            <a href="messages.html" class="small text-decoration-none text-danger">Review Requests &rarr;</a>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card h-100 shadow-sm border-0">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-light rounded p-2 me-3">
-                                        <i class="fas fa-star text-warning fa-2x"></i>
-                                    </div>
-                                    <h5 class="card-title mb-0">Rating</h5>
+                        <div class="card-premium h-100 p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <p class="text-muted small mb-1">Store Rating</p>
+                                    <h3 class="fw-bold mb-0" id="avg-rating">0.0</h3>
                                 </div>
-                                <p class="display-6 mb-1 fw-bold" id="avg-rating">0.0</p>
-                                <p class="small text-muted">Average</p>
+                                <div class="bg-warning bg-opacity-10 p-2 rounded-circle">
+                                    <i class="fas fa-star text-warning"></i>
+                                </div>
                             </div>
+                            <span class="small text-muted">Based on 12 reviews</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="row g-4 mt-2">
-                     <div class="col-md-6">
-                        <div class="card h-100 shadow-sm border-0">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">Verification Status</h5>
-                                <p class="mb-2">Current Status: <strong id="ver-status" class="text-uppercase">Checking...</strong></p>
-                                <div class="alert alert-light border small">
-                                    <i class="fas fa-info-circle me-1"></i> Verified vendors get a badge and higher visibility.
-                                </div>
-                                <a href="onboarding.html" class="btn btn-primary w-100">Update Documents</a>
+                <div class="row g-4">
+                    <!-- Sales Chart -->
+                    <div class="col-md-8">
+                        <div class="card-premium p-4 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="fw-bold mb-0">Sales Analytics</h5>
+                                <select class="form-select form-select-sm w-auto border-0 bg-light">
+                                    <option>Last 7 Days</option>
+                                    <option>Last 30 Days</option>
+                                </select>
                             </div>
+                            <canvas id="salesChart" height="250"></canvas>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                         <div class="card h-100 shadow-sm border-0">
-                            <div class="card-body">
-                                <h5 class="card-title mb-3">Quick Actions</h5>
-                                <div class="d-grid gap-2">
-                                    <a href="vendor_products.html" class="btn btn-outline-dark"><i class="fas fa-plus me-2"></i> Add New Product</a>
-                                    <a href="orders.html" class="btn btn-outline-dark"><i class="fas fa-list me-2"></i> View Recent Orders</a>
+
+                    <!-- Verification & Quick Actions -->
+                    <div class="col-md-4">
+                        <div class="card-premium p-4 mb-4">
+                            <h5 class="fw-bold mb-3">Verification Status</h5>
+                            <div class="d-flex align-items-center mb-3">
+                                <div id="ver-icon" class="me-3"></div>
+                                <div>
+                                    <p class="mb-0 fw-bold text-uppercase" id="ver-status">Checking...</p>
+                                    <small class="text-muted">Required for visibility</small>
                                 </div>
+                            </div>
+                            <a href="onboarding.html" class="btn btn-premium-primary w-100 btn-sm">Update Documents</a>
+                        </div>
+
+                        <div class="card-premium p-4">
+                            <h5 class="fw-bold mb-3">Quick Actions</h5>
+                            <div class="d-grid gap-2">
+                                <a href="vendor_products.html" class="btn btn-outline-dark btn-sm rounded-pill"><i class="fas fa-plus me-2"></i> Add Product</a>
+                                <a href="orders.html" class="btn btn-outline-dark btn-sm rounded-pill"><i class="fas fa-list me-2"></i> Process Orders</a>
+                                <a href="messages.html" class="btn btn-outline-dark btn-sm rounded-pill"><i class="fas fa-envelope me-2"></i> Support</a>
                             </div>
                         </div>
                     </div>
