@@ -25,11 +25,11 @@ function loadNav() {
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-4 me-auto mb-2 mb-lg-0">
-                        <li class="nav-item"><a class="nav-link px-3" href="/">Home</a></li>
+                        <li class="nav-item" id="nav-home"><a class="nav-link px-3" href="/">Home</a></li>
                         <li class="nav-item"><a class="nav-link px-3" href="products.html">Marketplace</a></li>
                         <li class="nav-item"><a class="nav-link px-3" href="vendors.html">Vendors</a></li>
-                        <li class="nav-item"><a class="nav-link px-3" href="about.html">About</a></li>
-                        <li class="nav-item"><a class="nav-link px-3" href="contact.html">Contact</a></li>
+                        <li class="nav-item" id="nav-about"><a class="nav-link px-3" href="about.html">About</a></li>
+                        <li class="nav-item" id="nav-contact"><a class="nav-link px-3" href="contact.html">Contact</a></li>
                     </ul>
                     <div class="d-flex align-items-center gap-3">
                          <a href="cart.html" class="position-relative text-secondary hover-primary me-3">
@@ -56,7 +56,17 @@ function checkAuth() {
     const userStr = localStorage.getItem('user');
     const authButtons = document.getElementById('auth-buttons');
     
+    // Nav items visibility
+    const navHome = document.getElementById('nav-home');
+    const navAbout = document.getElementById('nav-about');
+    const navContact = document.getElementById('nav-contact');
+
     if (!userStr) {
+        // Not logged in: Show Home, About, Contact
+        if (navHome) navHome.style.display = '';
+        if (navAbout) navAbout.style.display = '';
+        if (navContact) navContact.style.display = '';
+
         if (authButtons) {
             authButtons.innerHTML = `
                 <a href="login.html" class="btn btn-outline-primary btn-sm px-3 rounded-pill">Log In</a>
@@ -65,6 +75,11 @@ function checkAuth() {
         }
         return null;
     }
+
+    // Logged in: Hide Home, About, Contact
+    if (navHome) navHome.style.display = 'none';
+    if (navAbout) navAbout.style.display = 'none';
+    if (navContact) navContact.style.display = 'none';
 
     const user = JSON.parse(userStr);
     if (authButtons) {
@@ -120,8 +135,11 @@ function updateCartCount() {
 
 // Global Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-    // If nav-placeholder exists, loadNav calls checkAuth and updateCartCount
-    if (!document.getElementById('nav-placeholder')) {
+    // If nav-placeholder exists, loadNav (which calls checkAuth and updateCartCount)
+    if (document.getElementById('nav-placeholder')) {
+        loadNav();
+    } else {
+        // Otherwise just check auth and cart
         checkAuth();
         updateCartCount();
     }
