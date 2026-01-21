@@ -212,22 +212,33 @@
 
                     const rating = document.getElementById('review-rating').value;
                     const comment = document.getElementById('review-comment').value;
+                    const imageFile = document.getElementById('review-image').files[0];
+
+                    const formData = new FormData();
+                    formData.append('product_id', productId);
+                    formData.append('user_id', user.id);
+                    formData.append('rating', rating);
+                    formData.append('comment', comment);
+                    if (imageFile) {
+                        formData.append('reviewImage', imageFile);
+                    }
 
                     try {
-                        const revRes = await fetch(`/api/products/${productId}/reviews`, {
+                        const revRes = await fetch('/api/reviews', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ user_id: user.id, rating, comment })
+                            body: formData // Fetch sets Content-Type to multipart/form-data automatically
                         });
                         
                         if (revRes.ok) {
                             alert('Review posted!');
                             window.location.reload();
                         } else {
-                            alert('Failed to post review');
+                            const errData = await revRes.json();
+                            alert('Failed to post review: ' + (errData.error || 'Unknown error'));
                         }
                     } catch (err) {
                         console.error(err);
+                        alert('Error posting review');
                     }
                 };
 

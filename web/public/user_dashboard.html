@@ -89,26 +89,89 @@
         </div>
     </div>
 
+    <!-- Tracking Modal -->
+    <div class="modal fade" id="trackingModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">Order Tracking</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="tracking-timeline-content" class="tracking-timeline">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script>
+        // Expose showTracking globally
+        window.showTracking = function(orderId, status, date) {
+            const modal = new bootstrap.Modal(document.getElementById('trackingModal'));
+            const timeline = document.getElementById('tracking-timeline-content');
+            
+            // Define steps
+            const steps = [
+                { status: 'processing', label: 'Order Processing', desc: 'Your order is being prepared.' },
+                { status: 'shipped', label: 'Shipped', desc: 'Your order has left the warehouse.' },
+                { status: 'out_for_delivery', label: 'Out for Delivery', desc: 'Driver is on the way.' },
+                { status: 'delivered', label: 'Delivered', desc: 'Package delivered successfully.' }
+            ];
+
+            // Determine current step index
+            let currentIndex = 0;
+            // Map status to index. Default 'pending' is 0.
+            if (status === 'shipped') currentIndex = 1;
+            if (status === 'out_for_delivery') currentIndex = 2;
+            if (status === 'delivered') currentIndex = 3;
+
+            timeline.innerHTML = steps.map((step, index) => {
+                let activeClass = '';
+                if (index < currentIndex) activeClass = 'completed';
+                else if (index === currentIndex) activeClass = 'active';
+                
+                return `
+                    <div class="timeline-item ${activeClass}">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h6>${step.label}</h6>
+                            <small>${step.desc}</small>
+                            ${index === currentIndex ? `<br><small class="text-primary fw-bold mt-1 d-block">Updated: ${new Date().toLocaleDateString()}</small>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            modal.show();
+        };
+
         document.addEventListener('DOMContentLoaded', async () => {
             loadNav(); // Ensure nav is loaded
             const user = checkAuth(); // Ensures user is logged in
             if (!user) return;
 
-            document.getElementById('user-name').textContent = user.username;
-            document.getElementById('user-email').textContent = user.email;
+            // Populate User Info (Replace Skeletons)
+            document.getElementById('user-info-container').innerHTML = `
+                <p class="mb-1"><strong id="user-name">${user.username}</strong></p>
+                <p class="text-muted mb-2" id="user-email">${user.email}</p>
+            `;
 
             try {
+                // Add artificial delay to show off skeletons (optional, but good for demo)
+                // await new Promise(r => setTimeout(r, 1000));
+
                 const res = await fetch(`/api/user/dashboard?user_id=${user.id}`);
                 const data = await res.json();
                 
-                document.getElementById('order-count').textContent = data.orderCount;
+                document.getElementById('order-count-container').innerHTML = `<p class="display-6 mb-1">${data.orderCount}</p>`;
                 
                 const tbody = document.getElementById('recent-orders-body');
                 if (data.orders.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No recent orders found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No recent orders found.</td></tr>';
                 } else {
                     tbody.innerHTML = data.orders.map(o => `
                         <tr>
@@ -120,6 +183,12 @@
                                 </span>
                             </td>
                             <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary rounded-pill" 
+                                    onclick="showTracking('${o.order_number}', '${o.status}', '${o.created_at}')">
+                                    Track
+                                </button>
+                            </td>
                         </tr>
                     `).join('');
                 }
@@ -130,25 +199,26 @@
                 const returnsBody = document.getElementById('recent-returns-body');
                 
                 if (returnsData.length === 0) {
-                    returnsBody.innerHTML = '<tr><td colspan="2" class="text-center text-muted py-4">No returns requested.</td></tr>';
+                    returnsBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No returns requested.</td></tr>';
                 } else {
                     returnsBody.innerHTML = returnsData.map(r => `
                         <tr>
-                            <td class="ps-3">
-                                <div class="fw-bold">${r.product_name}</div>
-                                <small class="text-muted">#${r.order_number}</small>
-                            </td>
+                            <td class="ps-3">#${r.order_number}</td>
+                            <td><div class="fw-bold">${r.product_name}</div></td>
+                            <td>${r.reason}</td>
                             <td>
                                 <span class="badge rounded-pill ${r.status === 'approved' ? 'bg-success' : 'bg-secondary'}">
                                     ${r.status}
                                 </span>
                             </td>
+                            <td>${new Date(r.created_at).toLocaleDateString()}</td>
                         </tr>
                     `).join('');
                 }
 
             } catch (err) {
                 console.error(err);
+                // Handle error state if needed
             }
         });
     </script>

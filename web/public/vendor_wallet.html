@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Wallet - NIECOMM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light">
+    
+    <div id="nav-placeholder"></div>
+
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 d-none d-md-block bg-white sidebar shadow-sm rounded p-3 me-3" style="min-height: 80vh;">
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                        <span id="sidebar-initials">V</span>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold" id="sidebar-username">Vendor</h6>
+                        <small class="text-muted">Vendor Account</small>
+                    </div>
+                </div>
+                <ul class="nav flex-column gap-2">
+                    <li class="nav-item">
+                        <a href="vendor_dashboard.html" class="nav-link text-dark hover-bg-light rounded mb-2">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="vendor_products.html" class="nav-link text-dark hover-bg-light rounded mb-2">
+                            <i class="fas fa-box me-2"></i> Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="orders.html" class="nav-link text-dark hover-bg-light rounded mb-2">
+                            <i class="fas fa-shopping-bag me-2"></i> Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="vendor_wallet.html" class="nav-link active btn-premium-primary text-white rounded text-start mb-2">
+                            <i class="fas fa-wallet me-2"></i> Wallet
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="messages.html" class="nav-link text-dark hover-bg-light rounded mb-2">
+                            <i class="fas fa-envelope me-2"></i> Messages
+                        </a>
+                    </li>
+                    <li class="nav-item mt-4">
+                        <a href="#" onclick="logout()" class="nav-link text-danger hover-bg-light rounded">
+                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-9">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="fw-bold mb-1">My Wallet</h2>
+                        <p class="text-muted mb-0">Manage your earnings and payouts.</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-premium-primary" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                            <i class="fas fa-money-bill-wave me-2"></i> Request Withdrawal
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Wallet Stats -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <div class="card-premium h-100 p-5 bg-primary text-white">
+                            <div class="d-flex justify-content-between align-items-start mb-4">
+                                <div>
+                                    <p class="text-white-50 mb-1">Available Balance</p>
+                                    <h1 class="fw-bold mb-0 display-4">₦<span id="wallet-balance">0.00</span></h1>
+                                </div>
+                                <div class="bg-white bg-opacity-25 p-3 rounded-circle">
+                                    <i class="fas fa-wallet fa-2x"></i>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-3">
+                                <span class="badge bg-white text-primary rounded-pill px-3 py-2"><i class="fas fa-arrow-up me-1"></i> +₦0.00 this month</span>
+                                <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-2">Escrow: ₦0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card-premium h-100 p-4">
+                            <h5 class="fw-bold mb-3">Bank Details</h5>
+                            <form id="bank-form">
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted">Bank Name</label>
+                                    <input type="text" class="form-control" id="bank-name" placeholder="e.g. GTBank">
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label small text-muted">Account Number</label>
+                                        <input type="text" class="form-control" id="account-number" placeholder="0123456789">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label small text-muted">Account Name</label>
+                                        <input type="text" class="form-control" id="account-name" placeholder="Account Name">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill">Update Bank Info</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transactions Table -->
+                <div class="card-premium p-4">
+                    <h5 class="fw-bold mb-3">Transaction History</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transaction-list">
+                                <!-- Populated via JS -->
+                                <tr><td colspan="5" class="text-center py-4"><div class="skeleton skeleton-text w-50 mx-auto"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdrawal Modal -->
+    <div class="modal fade" id="withdrawModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">Request Withdrawal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle me-1"></i> Minimum withdrawal amount is ₦1,000.
+                    </div>
+                    <form id="withdraw-form">
+                        <div class="mb-3">
+                            <label class="form-label">Amount (₦)</label>
+                            <input type="number" class="form-control form-control-lg" id="withdraw-amount" required min="1000">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">OTP Verification</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="otp-code" placeholder="Enter 6-digit OTP" required maxlength="6">
+                                <button class="btn btn-outline-secondary" type="button" id="btn-send-otp">Send OTP</button>
+                            </div>
+                            <small class="text-muted">OTP will be sent to your registered email.</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-lg rounded-pill mt-3">Confirm Withdrawal</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadNav();
+            const user = checkAuth();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            document.getElementById('sidebar-username').textContent = user.username;
+            document.getElementById('sidebar-initials').textContent = user.username.charAt(0).toUpperCase();
+
+            // Load Wallet Data
+            async function loadWallet() {
+                try {
+                    const res = await fetch(`/api/wallet?user_id=${user.id}`);
+                    const data = await res.json();
+                    
+                    // Balance
+                    document.getElementById('wallet-balance').textContent = Number(data.balance).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+                    
+                    // Transactions
+                    const tbody = document.getElementById('transaction-list');
+                    tbody.innerHTML = '';
+                    
+                    if (data.transactions.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No transactions found</td></tr>';
+                        return;
+                    }
+
+                    data.transactions.forEach(tx => {
+                        const date = new Date(tx.created_at).toLocaleDateString();
+                        const isCredit = tx.type === 'credit';
+                        const colorClass = isCredit ? 'text-success' : 'text-danger';
+                        const sign = isCredit ? '+' : '-';
+                        
+                        const statusBadges = {
+                            'completed': 'bg-success',
+                            'pending': 'bg-warning text-dark',
+                            'failed': 'bg-danger'
+                        };
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${date}</td>
+                                <td>${tx.description}</td>
+                                <td><span class="badge bg-light text-dark border">${tx.type.toUpperCase()}</span></td>
+                                <td><span class="badge ${statusBadges[tx.status]}">${tx.status}</span></td>
+                                <td class="text-end fw-bold ${colorClass}">${sign}₦${Number(tx.amount).toLocaleString()}</td>
+                            </tr>
+                        `;
+                    });
+                } catch (err) {
+                    console.error(err);
+                    showToast('Failed to load wallet data', 'error');
+                }
+            }
+
+            loadWallet();
+
+            // Send OTP
+            document.getElementById('btn-send-otp').addEventListener('click', async () => {
+                const btn = document.getElementById('btn-send-otp');
+                btn.disabled = true;
+                btn.textContent = 'Sending...';
+                
+                try {
+                    const res = await fetch('/api/auth/send-otp', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ email: user.email })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        showToast(data.message, 'success');
+                        btn.textContent = 'Sent!';
+                        setTimeout(() => { btn.disabled = false; btn.textContent = 'Resend OTP'; }, 30000);
+                    } else {
+                        showToast(data.error, 'error');
+                        btn.disabled = false;
+                        btn.textContent = 'Send OTP';
+                    }
+                } catch (err) {
+                    showToast('Failed to send OTP', 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Send OTP';
+                }
+            });
+
+            // Withdraw
+            document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const amount = document.getElementById('withdraw-amount').value;
+                const otp = document.getElementById('otp-code').value;
+
+                try {
+                    const res = await fetch('/api/wallet/withdraw', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ user_id: user.id, amount, otp })
+                    });
+                    const data = await res.json();
+                    
+                    if (res.ok) {
+                        showToast(data.message, 'success');
+                        bootstrap.Modal.getInstance(document.getElementById('withdrawModal')).hide();
+                        loadWallet();
+                    } else {
+                        showToast(data.error, 'error');
+                    }
+                } catch (err) {
+                    showToast('Withdrawal failed', 'error');
+                }
+            });
+
+            // Bank Details (Simulated update)
+            document.getElementById('bank-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const bankName = document.getElementById('bank-name').value;
+                const accNum = document.getElementById('account-number').value;
+                const accName = document.getElementById('account-name').value;
+
+                try {
+                    const res = await fetch('/api/vendor/profile', {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ 
+                            user_id: user.id, 
+                            bank_name: bankName, 
+                            account_number: accNum, 
+                            account_name: accName 
+                        })
+                    });
+                    
+                    if (res.ok) {
+                        showToast('Bank details updated', 'success');
+                    }
+                } catch (err) {
+                    showToast('Failed to update bank details', 'error');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

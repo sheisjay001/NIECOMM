@@ -22,8 +22,9 @@ app.use('/api/', limiter); // Apply to API routes
 
 // Middleware
 app.use(cors());
-// Security Headers
+// Security Headers (CSP)
 app.use((req, res, next) => {
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self'");
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -47,14 +48,20 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Configure Multer for local uploads
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const dir = path.join(__dirname, 'public/uploads/products');
-        if (!fs.existsSync(dir)){
-            fs.mkdirSync(dir, { recursive: true });
+        let dir = 'public/uploads/misc';
+        if (file.fieldname === 'image') dir = 'public/uploads/products';
+        if (file.fieldname === 'reviewImage') dir = 'public/uploads/reviews';
+        if (file.fieldname === 'cac_certificate') dir = 'public/uploads/verifications';
+        if (file.fieldname === 'shop_image') dir = 'public/uploads/verifications';
+        
+        const absoluteDir = path.join(__dirname, dir);
+        if (!fs.existsSync(absoluteDir)){
+            fs.mkdirSync(absoluteDir, { recursive: true });
         }
-        cb(null, dir);
+        cb(null, absoluteDir);
     },
     filename: function (req, file, cb) {
-        cb(null, 'product-' + Date.now() + path.extname(file.originalname));
+        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
     }
 });
 const upload = multer({ storage: storage });
@@ -273,10 +280,34 @@ async function initDb() {
             user_id INT NOT NULL,
             rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
             comment TEXT,
+            image_path VARCHAR(255),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )`);
+
+        try {
+            await db.query("ALTER TABLE product_reviews ADD COLUMN image_path VARCHAR(255)");
+        } catch (e) {}
+
+        // Wallet Transactions Table
+        await db.query(`CREATE TABLE IF NOT EXISTS wallet_transactions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            amount DECIMAL(10, 2) NOT NULL,
+            type ENUM('credit', 'debit') NOT NULL,
+            description VARCHAR(255),
+            status ENUM('pending', 'completed', 'failed') DEFAULT 'completed',
+            reference VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )`);
+
+        // Update Users Table for OTP
+        try {
+            await db.query("ALTER TABLE users ADD COLUMN otp_code VARCHAR(6)");
+            await db.query("ALTER TABLE users ADD COLUMN otp_expires_at TIMESTAMP NULL");
+        } catch (e) {}
 
         // Seed LGAs for Lagos (Sample)
         const lagosState = await db.query("SELECT id FROM states WHERE name = 'Lagos'");
@@ -1132,24 +1163,144 @@ app.get('/api/products/:id', async (req, res) => {
     }
 });
 
-// Add Review
-app.post('/api/products/:id/reviews', async (req, res) => {
-    const { user_id, rating, comment } = req.body;
-    if (!user_id || !rating) return res.status(400).json({ error: 'Rating required' });
+// --- OTP Helper Functions ---
+function generateOTP() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// --- Wallet API ---
+
+// Get Wallet Balance & History
+app.get('/api/wallet', async (req, res) => {
+    // In a real app, verify token here
+    // For demo, we assume user_id is passed in header or query (Simulated Auth)
+    // BUT we should be consistent. Let's assume the frontend sends user_id for now if we don't have full JWT middleware yet
+    const userId = req.query.user_id; 
     
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
     try {
-        const conn = await getDb();
-        await conn.execute(
-            'INSERT INTO product_reviews (product_id, user_id, rating, comment, created_at) VALUES (?, ?, ?, ?, NOW())',
-            [req.params.id, user_id, rating, comment]
-        );
-        await conn.end();
-        res.status(201).json({ message: 'Review added' });
+        const db = await getDb();
+        
+        // Calculate Balance
+        const [credits] = await db.query("SELECT SUM(amount) as total FROM wallet_transactions WHERE user_id = ? AND type = 'credit' AND status = 'completed'", [userId]);
+        const [debits] = await db.query("SELECT SUM(amount) as total FROM wallet_transactions WHERE user_id = ? AND type = 'debit' AND status = 'completed'", [userId]);
+        
+        const balance = (credits[0].total || 0) - (debits[0].total || 0);
+
+        // Get Transactions
+        const [transactions] = await db.query("SELECT * FROM wallet_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50", [userId]);
+
+        await db.end();
+        res.json({ balance, transactions });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: err.message });
     }
 });
+
+// Request Withdrawal (Requires OTP)
+app.post('/api/wallet/withdraw', async (req, res) => {
+    const { user_id, amount, otp } = req.body;
+    
+    if (!user_id || !amount || !otp) return res.status(400).json({ error: 'Missing required fields' });
+
+    try {
+        const db = await getDb();
+
+        // Verify OTP
+        const [user] = await db.query("SELECT otp_code, otp_expires_at FROM users WHERE id = ?", [user_id]);
+        if (!user.length) {
+            await db.end();
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const { otp_code, otp_expires_at } = user[0];
+        
+        if (otp_code !== otp) {
+            await db.end();
+            return res.status(400).json({ error: 'Invalid OTP' });
+        }
+        if (new Date() > new Date(otp_expires_at)) {
+            await db.end();
+            return res.status(400).json({ error: 'OTP Expired' });
+        }
+
+        // Check Balance
+        const [credits] = await db.query("SELECT SUM(amount) as total FROM wallet_transactions WHERE user_id = ? AND type = 'credit' AND status = 'completed'", [user_id]);
+        const [debits] = await db.query("SELECT SUM(amount) as total FROM wallet_transactions WHERE user_id = ? AND type = 'debit' AND status = 'completed'", [user_id]);
+        const balance = (credits[0].total || 0) - (debits[0].total || 0);
+
+        if (balance < amount) {
+            await db.end();
+            return res.status(400).json({ error: 'Insufficient funds' });
+        }
+
+        // Create Withdrawal Transaction
+        await db.query("INSERT INTO wallet_transactions (user_id, amount, type, description, status) VALUES (?, ?, 'debit', 'Withdrawal Request', 'pending')", [user_id, amount]);
+
+        // Clear OTP
+        await db.query("UPDATE users SET otp_code = NULL, otp_expires_at = NULL WHERE id = ?", [user_id]);
+
+        await db.end();
+        res.json({ message: 'Withdrawal request submitted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- OTP API ---
+
+app.post('/api/auth/send-otp', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+
+    try {
+        const db = await getDb();
+        const [user] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
+        
+        if (!user.length) {
+            await db.end();
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const otp = generateOTP();
+        const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
+
+        await db.query("UPDATE users SET otp_code = ?, otp_expires_at = ? WHERE id = ?", [otp, expiresAt, user[0].id]);
+
+        // SIMULATION: Log OTP to console (Since we don't have email server)
+        console.log(`[OTP SIMULATION] OTP for ${email}: ${otp}`);
+
+        await db.end();
+        res.json({ message: 'OTP sent successfully (Check console for simulation)' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Reviews API (Updated) ---
+app.post('/api/reviews', upload.single('reviewImage'), async (req, res) => {
+    const { product_id, user_id, rating, comment } = req.body;
+    const imagePath = req.file ? `/uploads/reviews/${req.file.filename}` : null;
+
+    try {
+        const db = await getDb();
+        await db.query(
+            "INSERT INTO product_reviews (product_id, user_id, rating, comment, image_path) VALUES (?, ?, ?, ?, ?)",
+            [product_id, user_id, rating, comment, imagePath]
+        );
+        await db.end();
+        res.json({ message: 'Review added successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Add Review (Old - Deprecated/Replaced)
+// app.post('/api/products/:id/reviews', ...
 
 // Submit Return Request
 app.post('/api/returns', async (req, res) => {

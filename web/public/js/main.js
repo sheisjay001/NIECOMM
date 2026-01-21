@@ -180,6 +180,16 @@ function updateCartCount() {
     const count = cart.reduce((acc, item) => acc + item.quantity, 0);
     const badge = document.getElementById('cart-count-badge');
     if (badge) badge.textContent = count;
+    
+    // Update Mobile Badge
+    const mobileBadge = document.getElementById('mobile-cart-badge');
+    if (mobileBadge) {
+        if (count > 0) {
+            mobileBadge.style.display = 'block';
+        } else {
+            mobileBadge.style.display = 'none';
+        }
+    }
 }
 
 // Global Event Listeners
