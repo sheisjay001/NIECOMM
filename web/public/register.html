@@ -60,6 +60,13 @@
                                 </select>
                             </div>
 
+                            <div class="mb-3" id="city-container" style="display: none;">
+                                <label class="form-label">City</label>
+                                <select id="city_id" class="form-select">
+                                    <option value="">Select City</option>
+                                </select>
+                            </div>
+
                             <div id="vendor-fields" style="display: none;">
                                 <div class="mb-3">
                                     <label class="form-label">Physical Shop Address</label>
@@ -117,11 +124,15 @@
                     const stateId = this.value;
                     const lgaSelect = document.getElementById('lga_id');
                     const lgaContainer = document.getElementById('lga-container');
+                    const citySelect = document.getElementById('city_id');
+                    const cityContainer = document.getElementById('city-container');
                     
                     lgaSelect.innerHTML = '<option value="">Select LGA</option>';
+                    citySelect.innerHTML = '<option value="">Select City</option>';
                     
                     if (!stateId) {
                         lgaContainer.style.display = 'none';
+                        cityContainer.style.display = 'none';
                         return;
                     }
 
@@ -140,8 +151,25 @@
                         } else {
                             lgaContainer.style.display = 'none';
                         }
+
+                        // Fetch Cities
+                        const cityRes = await fetch(`/api/states/${stateId}/cities`);
+                        const cities = await cityRes.json();
+                        
+                        if (cities.length > 0) {
+                            cities.forEach(city => {
+                                const opt = document.createElement('option');
+                                opt.value = city.id;
+                                opt.textContent = city.name;
+                                citySelect.appendChild(opt);
+                            });
+                            cityContainer.style.display = 'block';
+                        } else {
+                            cityContainer.style.display = 'none';
+                        }
+
                     } catch (e) {
-                        console.error('Error loading LGAs', e);
+                        console.error('Error loading locations', e);
                     }
                 });
             } catch (err) {
@@ -200,6 +228,11 @@
             const lgaId = document.getElementById('lga_id').value;
             if (lgaId) {
                 formData.append('lga_id', lgaId);
+            }
+
+            const cityId = document.getElementById('city_id').value;
+            if (cityId) {
+                formData.append('city_id', cityId);
             }
             
             if (document.getElementById('role').value === 'vendor') {

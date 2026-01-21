@@ -92,10 +92,15 @@
                 select.addEventListener('change', async (e) => {
                     const stateId = e.target.value;
                     const lgaSelect = document.getElementById('lga-filter');
+                    const citySelect = document.getElementById('city-filter');
                     
                     if (!stateId) {
                         lgaSelect.innerHTML = '<option value="">All LGAs</option>';
                         lgaSelect.disabled = true;
+                        if (citySelect) {
+                            citySelect.innerHTML = '<option value="">All Cities</option>';
+                            citySelect.disabled = true;
+                        }
                         return;
                     }
 
@@ -106,8 +111,17 @@
                         lgaSelect.innerHTML = '<option value="">All LGAs</option>' + 
                             lgas.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
                         lgaSelect.disabled = false;
+
+                        // Load Cities
+                        if (citySelect) {
+                            const cityRes = await fetch(`/api/states/${stateId}/cities`);
+                            const cities = await cityRes.json();
+                            citySelect.innerHTML = '<option value="">All Cities</option>' + 
+                                cities.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                            citySelect.disabled = false;
+                        }
                     } catch (e) {
-                        console.error('Failed to load LGAs', e);
+                        console.error('Failed to load locations', e);
                     }
                 });
             } catch (err) {
@@ -119,11 +133,13 @@
             try {
                 const stateId = document.getElementById('state-filter').value;
                 const lgaId = document.getElementById('lga-filter').value;
+                const cityId = document.getElementById('city-filter') ? document.getElementById('city-filter').value : '';
                 
                 let url = '/api/products';
                 const params = new URLSearchParams();
                 if (stateId) params.append('state_id', stateId);
                 if (lgaId) params.append('lga_id', lgaId);
+                if (cityId) params.append('city_id', cityId);
                 
                 if (userLocation) {
                     params.append('user_lat', userLocation.lat);
