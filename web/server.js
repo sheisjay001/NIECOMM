@@ -1012,7 +1012,6 @@ app.post('/api/admin/orders/:id/release', async (req, res) => {
             JOIN order_items oi ON o.id = oi.order_id
             JOIN products p ON oi.product_id = p.id
             WHERE o.id = ?
-            GROUP BY o.id
         `, [req.params.id]);
 
         if (orders.length === 0) {
@@ -1020,6 +1019,7 @@ app.post('/api/admin/orders/:id/release', async (req, res) => {
             return res.status(404).json({ error: 'Order not found' });
         }
 
+        // Use the first row (assuming single vendor per order for now, or primary vendor)
         const order = orders[0];
 
         if (order.payout_status === 'completed') {
@@ -1776,7 +1776,6 @@ app.post('/api/orders/:id/confirm', async (req, res) => {
             JOIN order_items oi ON o.id = oi.order_id
             JOIN products p ON oi.product_id = p.id
             WHERE o.id = ?
-            GROUP BY o.id
         `, [orderId]);
 
         if (orders.length === 0) {
