@@ -6,6 +6,7 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const fs = require('fs');
+const os = require('os');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
@@ -56,10 +57,16 @@ const storage = multer.diskStorage({
         if (file.fieldname === 'proof_of_payment') dir = 'public/uploads/receipts';
         
         const absoluteDir = path.join(__dirname, dir);
-        if (!fs.existsSync(absoluteDir)){
-            fs.mkdirSync(absoluteDir, { recursive: true });
+        
+        try {
+            if (!fs.existsSync(absoluteDir)){
+                fs.mkdirSync(absoluteDir, { recursive: true });
+            }
+            cb(null, absoluteDir);
+        } catch (err) {
+            console.error(`Upload Error: Could not write to ${absoluteDir}. Falling back to temp dir. Error: ${err.message}`);
+            cb(null, os.tmpdir());
         }
-        cb(null, absoluteDir);
     },
     filename: function (req, file, cb) {
         cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
