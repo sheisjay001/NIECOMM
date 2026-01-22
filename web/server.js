@@ -1357,31 +1357,26 @@ app.get('/api/wallet', async (req, res) => {
     }
 });
 
-// Request Withdrawal (Requires OTP)
+// Request Withdrawal (Requires Password)
 app.post('/api/wallet/withdraw', async (req, res) => {
-    const { user_id, amount, otp } = req.body;
+    const { user_id, amount, password } = req.body;
     
-    if (!user_id || !amount || !otp) return res.status(400).json({ error: 'Missing required fields' });
+    if (!user_id || !amount || !password) return res.status(400).json({ error: 'Missing required fields' });
 
     try {
         const db = await getDb();
 
-        // Verify OTP
-        const [user] = await db.query("SELECT otp_code, otp_expires_at FROM users WHERE id = ?", [user_id]);
+        // Verify Password
+        const [user] = await db.query("SELECT password FROM users WHERE id = ?", [user_id]);
         if (!user.length) {
             await db.end();
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const { otp_code, otp_expires_at } = user[0];
-        
-        if (otp_code !== otp) {
+        const isMatch = await bcrypt.compare(password, user[0].password);
+        if (!isMatch) {
             await db.end();
-            return res.status(400).json({ error: 'Invalid OTP' });
-        }
-        if (new Date() > new Date(otp_expires_at)) {
-            await db.end();
-            return res.status(400).json({ error: 'OTP Expired' });
+            return res.status(400).json({ error: 'Incorrect password' });
         }
 
         // Check Balance
@@ -1396,9 +1391,6 @@ app.post('/api/wallet/withdraw', async (req, res) => {
 
         // Create Withdrawal Transaction
         await db.query("INSERT INTO wallet_transactions (user_id, amount, type, description, status) VALUES (?, ?, 'debit', 'Withdrawal Request', 'pending')", [user_id, amount]);
-
-        // Clear OTP
-        await db.query("UPDATE users SET otp_code = NULL, otp_expires_at = NULL WHERE id = ?", [user_id]);
 
         await db.end();
         res.json({ message: 'Withdrawal request submitted successfully' });

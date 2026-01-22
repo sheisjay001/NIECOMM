@@ -159,12 +159,8 @@
                             <input type="number" class="form-control form-control-lg" id="withdraw-amount" required min="1000">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">OTP Verification</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="otp-code" placeholder="Enter 6-digit OTP" required maxlength="6">
-                                <button class="btn btn-outline-secondary" type="button" id="btn-send-otp">Send OTP</button>
-                            </div>
-                            <small class="text-muted">OTP will be sent to your registered email.</small>
+                            <label class="form-label">Password Confirmation</label>
+                            <input type="password" class="form-control" id="withdraw-password" placeholder="Enter your password to confirm" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 btn-lg rounded-pill mt-3">Confirm Withdrawal</button>
                     </form>
@@ -235,46 +231,17 @@
 
             loadWallet();
 
-            // Send OTP
-            document.getElementById('btn-send-otp').addEventListener('click', async () => {
-                const btn = document.getElementById('btn-send-otp');
-                btn.disabled = true;
-                btn.textContent = 'Sending...';
-                
-                try {
-                    const res = await fetch('/api/auth/send-otp', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ email: user.email })
-                    });
-                    const data = await res.json();
-                    if (res.ok) {
-                        showToast(data.message, 'success');
-                        btn.textContent = 'Sent!';
-                        setTimeout(() => { btn.disabled = false; btn.textContent = 'Resend OTP'; }, 30000);
-                    } else {
-                        showToast(data.error, 'error');
-                        btn.disabled = false;
-                        btn.textContent = 'Send OTP';
-                    }
-                } catch (err) {
-                    showToast('Failed to send OTP', 'error');
-                    btn.disabled = false;
-                    btn.textContent = 'Send OTP';
-                }
-            });
-
             // Withdraw
             document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const amount = document.getElementById('withdraw-amount').value;
-                const otp = document.getElementById('otp-code').value;
+                const password = document.getElementById('withdraw-password').value;
 
                 try {
                     const res = await fetch('/api/wallet/withdraw', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ user_id: user.id, amount, otp })
+                        body: JSON.stringify({ user_id: user.id, amount, password })
                     });
                     const data = await res.json();
                     
