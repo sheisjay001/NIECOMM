@@ -58,6 +58,11 @@
                             <i class="fas fa-wallet me-2"></i> Escrow System
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a onclick="showSection('withdrawals')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-withdrawals">
+                            <i class="fas fa-money-bill-wave me-2"></i> Withdrawals <span class="badge bg-warning text-dark ms-auto" id="nav-badge-withdraw" style="display:none">0</span>
+                        </a>
+                    </li>
                     <li class="nav-item mt-4">
                         <a href="#" onclick="logout()" class="nav-link text-danger hover-bg-light rounded">
                             <i class="fas fa-sign-out-alt me-2"></i> Logout
@@ -188,6 +193,38 @@
                                         <!-- Populated via JS -->
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: WITHDRAWALS -->
+                <div id="section-withdrawals" class="section">
+                    <h2 class="fw-bold mb-4">Withdrawal Requests</h2>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        These are requests from vendors to withdraw their wallet balance. Please manually transfer the funds to the bank details below and then click "Mark Sent".
+                    </div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Vendor</th>
+                                            <th>Amount</th>
+                                            <th>Bank Details</th>
+                                            <th>Date</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="withdrawals-table">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="no-withdrawals" class="text-center py-5 d-none">
+                                <p class="text-muted">No pending withdrawal requests.</p>
                             </div>
                         </div>
                     </div>
@@ -348,6 +385,75 @@
             if (sectionId === 'orders') loadOrders();
             if (sectionId === 'escrow') loadEscrowStats();
             if (sectionId === 'dashboard') loadDashboardStats();
+            if (sectionId === 'withdrawals') loadWithdrawals();
+        }
+
+        async function loadWithdrawals() {
+            try {
+                const res = await fetch('/api/admin/withdrawals');
+                const requests = await res.json();
+
+                const tbody = document.getElementById('withdrawals-table');
+                const badge = document.getElementById('nav-badge-withdraw');
+
+                if (requests.length > 0) {
+                    badge.innerText = requests.length;
+                    badge.style.display = 'inline-block';
+                    document.getElementById('no-withdrawals').classList.add('d-none');
+                } else {
+                    badge.style.display = 'none';
+                    document.getElementById('no-withdrawals').classList.remove('d-none');
+                    tbody.innerHTML = '';
+                    return;
+                }
+
+                tbody.innerHTML = requests.map(r => `
+                    <tr>
+                        <td>
+                            <div class="fw-bold">${r.username}</div>
+                            <div class="small text-muted">${r.email}</div>
+                        </td>
+                        <td class="fw-bold text-danger">${formatCurrency(r.amount)}</td>
+                        <td>
+                            <div><strong>Bank:</strong> ${r.bank_name || 'N/A'}</div>
+                            <div><strong>Acc:</strong> <span class="font-monospace">${r.account_number || 'N/A'}</span></div>
+                            <div class="small text-muted">${r.account_name || ''}</div>
+                        </td>
+                        <td>${new Date(r.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <button onclick="processWithdrawal(${r.id}, 'completed')" class="btn btn-sm btn-success me-1">
+                                <i class="fas fa-check me-1"></i> Mark Sent
+                            </button>
+                            <button onclick="processWithdrawal(${r.id}, 'rejected')" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-times me-1"></i> Reject
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function processWithdrawal(id, status) {
+            if (!confirm(`Are you sure you want to mark this withdrawal as ${status}?`)) return;
+
+            try {
+                const res = await fetch(`/api/admin/withdrawals/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+
+                if (res.ok) {
+                    alert(`Withdrawal ${status} successfully`);
+                    loadWithdrawals();
+                } else {
+                    alert('Failed to update withdrawal');
+                }
+            } catch (err) {
+                console.error(err);
+            }
         }
 
         async function loadDashboardStats() {

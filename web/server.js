@@ -947,6 +947,53 @@ app.post('/api/admin/orders/:id/payment', async (req, res) => {
     }
 });
 
+// Admin: Get Pending Withdrawals
+app.get('/api/admin/withdrawals', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(`
+            SELECT wt.*, u.username, u.email, u.bank_name, u.account_number, u.account_name
+            FROM wallet_transactions wt
+            JOIN users u ON wt.user_id = u.id
+            WHERE wt.type = 'debit' AND wt.description = 'Withdrawal Request' AND wt.status = 'pending'
+            ORDER BY wt.created_at ASC
+        `);
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Process Withdrawal (Mark as Sent/Rejected)
+app.post('/api/admin/withdrawals/:id', async (req, res) => {
+    const { status, admin_note } = req.body; // status: 'completed' | 'rejected'
+    if (!['completed', 'rejected'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+
+    try {
+        const conn = await getDb();
+        
+        if (status === 'rejected') {
+            // Refund the balance
+            const [tx] = await conn.execute('SELECT user_id, amount FROM wallet_transactions WHERE id = ?', [req.params.id]);
+            if (tx.length > 0) {
+                const { user_id, amount } = tx[0];
+                await conn.execute("INSERT INTO wallet_transactions (user_id, amount, type, description, status) VALUES (?, ?, 'credit', 'Withdrawal Refunded', 'completed')", [user_id, amount]);
+            }
+        }
+
+        await conn.execute('UPDATE wallet_transactions SET status = ?, description = CONCAT(description, ?) WHERE id = ?', 
+            [status, admin_note ? ` - ${admin_note}` : '', req.params.id]);
+        
+        await conn.end();
+        res.json({ message: `Withdrawal ${status}` });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Admin: Get Returns
 app.get('/api/admin/returns', async (req, res) => {
     try {
