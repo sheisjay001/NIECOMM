@@ -1747,6 +1747,12 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Health check / Version endpoint
+app.get('/api/version', (req, res) => {
+    res.json({ version: '1.2.0', updated: new Date().toISOString() });
+});
+
+
 app.listen(PORT, async () => {
     await initDb();
     console.log(`Server running on http://localhost:${PORT}`);
