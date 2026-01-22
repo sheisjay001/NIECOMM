@@ -85,6 +85,8 @@ async function initDb() {
             await checkConn.end();
         } catch (err) {
             console.log('Initial DB connection failed:', err.message);
+            let shouldCreateDb = false;
+
             // Check for SSL handshake error or timeout (common in local XAMPP)
             if (err.code === 'HANDSHAKE_NO_SSL_SUPPORT' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' || err.code === 'ER_CONN_REFUSED') {
                 console.log('Retrying without SSL and forcing 127.0.0.1...');
@@ -95,27 +97,27 @@ async function initDb() {
                     const retryConn = await getDb();
                     await retryConn.end();
                     console.log('Connection successful after retry.');
-                    return; // Connection successful, no need to create DB
                 } catch (retryErr) {
-                    // If it fails again (e.g. DB doesn't exist), proceed to creation
-                    console.log('Connection retry failed, proceeding to database creation check...', retryErr.message);
+                    console.log('Connection retry failed:', retryErr.message);
+                    shouldCreateDb = true;
                 }
             } else {
-                throw err;
+                shouldCreateDb = true;
             }
-        }
 
-            // If connection fails, try creating the database (for local dev)
-            console.log('Database connection failed, attempting to create database...', err.message);
-            const conn = await mysql.createConnection({
-                host: dbConfig.host,
-                user: dbConfig.user,
-                password: dbConfig.password,
-                port: dbConfig.port,
-                ssl: dbConfig.ssl
-            });
-            await conn.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\``);
-            await conn.end();
+            if (shouldCreateDb) {
+                // If connection fails, try creating the database (for local dev)
+                console.log('Attempting to create database...');
+                const conn = await mysql.createConnection({
+                    host: dbConfig.host,
+                    user: dbConfig.user,
+                    password: dbConfig.password,
+                    port: dbConfig.port,
+                    ssl: dbConfig.ssl
+                });
+                await conn.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\``);
+                await conn.end();
+            }
         }
         
         // Create Tables
