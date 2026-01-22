@@ -258,9 +258,21 @@ async function initDb() {
             shipping_address TEXT NOT NULL,
             status ENUM('processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'processing',
             payment_status ENUM('pending', 'paid', 'held', 'failed') DEFAULT 'pending',
+            payment_method VARCHAR(50),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (customer_id) REFERENCES users(id)
         )`);
+
+        // Update Orders Table for payment_method, delivered_at, payout_status
+        try {
+            await db.query("ALTER TABLE orders ADD COLUMN payment_method VARCHAR(50)");
+        } catch (e) {}
+        try {
+            await db.query("ALTER TABLE orders ADD COLUMN delivered_at TIMESTAMP NULL");
+        } catch (e) {}
+        try {
+            await db.query("ALTER TABLE orders ADD COLUMN payout_status ENUM('pending', 'completed', 'refunded') DEFAULT 'pending'");
+        } catch (e) {}
 
         // Order Items Table
         await db.query(`CREATE TABLE IF NOT EXISTS order_items (
@@ -1017,7 +1029,7 @@ app.get('/api/states', async (req, res) => {
 
 // Place Order
 app.post('/api/orders', async (req, res) => {
-    const { user_id, shipping_address, cart } = req.body;
+    const { user_id, shipping_address, cart, payment_method } = req.body;
     if (!user_id || !shipping_address || !cart || cart.length === 0) {
         return res.status(400).json({ error: 'Invalid order data' });
     }
@@ -1052,9 +1064,10 @@ app.post('/api/orders', async (req, res) => {
         const orderNumber = 'NGM-' + Date.now();
         
         // Create Order
+        // Status is 'processing', Payment is 'held' (Escrow)
         const [orderResult] = await conn.execute(
-            "INSERT INTO orders (order_number, customer_id, total_amount, shipping_address, status, payment_status, created_at) VALUES (?, ?, ?, ?, 'processing', 'held', NOW())",
-            [orderNumber, user_id, total, shipping_address]
+            "INSERT INTO orders (order_number, customer_id, total_amount, shipping_address, status, payment_status, payment_method, created_at) VALUES (?, ?, ?, ?, 'processing', 'held', ?, NOW())",
+            [orderNumber, user_id, total, shipping_address, payment_method || 'card']
         );
         
         const orderId = orderResult.insertId;
@@ -1379,6 +1392,184 @@ app.get('/api/user/returns', async (req, res) => {
         `, [userId]);
         await conn.end();
         res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Update Order Status (Admin/Vendor)
+app.put('/api/orders/:id/status', async (req, res) => {
+    const { status } = req.body;
+    const orderId = req.params.id;
+
+    if (!['processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    try {
+        const conn = await getDb();
+        
+        let updateQuery = "UPDATE orders SET status = ? WHERE id = ?";
+        let params = [status, orderId];
+
+        // If delivered, set delivered_at
+        if (status === 'delivered') {
+            updateQuery = "UPDATE orders SET status = ?, delivered_at = NOW() WHERE id = ?";
+        }
+
+        await conn.execute(updateQuery, params);
+        await conn.end();
+        res.json({ message: 'Order status updated' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Get Escrow Stats
+app.get('/api/admin/escrow-stats', async (req, res) => {
+    try {
+        const conn = await getDb();
+        
+        // Total held in escrow (payment_status='held')
+        const [heldRows] = await conn.execute("SELECT SUM(total_amount) as total FROM orders WHERE payment_status = 'held'");
+        const totalHeld = heldRows[0].total || 0;
+
+        // Pending Payouts (Delivered > 3 days ago, payout_status='pending', payment_status='held')
+        const [pendingRows] = await conn.execute(`
+            SELECT COUNT(*) as count, SUM(total_amount) as total 
+            FROM orders 
+            WHERE status = 'delivered' 
+            AND payment_status = 'held'
+            AND payout_status = 'pending'
+            AND delivered_at < DATE_SUB(NOW(), INTERVAL 3 DAY)
+        `);
+        
+        // Orders currently in 3-day window
+        const [windowRows] = await conn.execute(`
+            SELECT COUNT(*) as count, SUM(total_amount) as total
+            FROM orders
+            WHERE status = 'delivered'
+            AND payment_status = 'held'
+            AND payout_status = 'pending'
+            AND delivered_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+        `);
+
+        await conn.end();
+
+        res.json({
+            totalHeld,
+            pendingPayouts: {
+                count: pendingRows[0].count,
+                total: pendingRows[0].total || 0
+            },
+            inWindow: {
+                count: windowRows[0].count,
+                total: windowRows[0].total || 0
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Process Escrow Payouts (Simulate Cron)
+app.post('/api/admin/process-escrow', async (req, res) => {
+    try {
+        const conn = await getDb();
+        
+        // 1. Find eligible orders
+        // Delivered > 3 days ago, Payment Held, Payout Pending
+        const [orders] = await conn.execute(`
+            SELECT o.id, o.order_number, o.total_amount, p.vendor_id
+            FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            WHERE o.status = 'delivered' 
+            AND o.payment_status = 'held'
+            AND o.payout_status = 'pending'
+            AND o.delivered_at < DATE_SUB(NOW(), INTERVAL 3 DAY)
+            GROUP BY o.id
+        `);
+
+        if (orders.length === 0) {
+            await conn.end();
+            return res.json({ message: 'No eligible orders for payout', processed: 0 });
+        }
+
+        let processedCount = 0;
+
+        for (const order of orders) {
+            // Check for Active Returns
+            const [returns] = await conn.execute("SELECT id FROM returns WHERE order_id = ? AND status IN ('requested', 'approved')", [order.id]);
+            
+            if (returns.length > 0) {
+                // Skip this order if there is an active return
+                continue;
+            }
+
+            // Process Payout
+            // 1. Credit Vendor Wallet
+            await conn.execute(
+                "INSERT INTO wallet_transactions (user_id, amount, type, description, status, reference) VALUES (?, ?, 'credit', ?, 'completed', ?)",
+                [order.vendor_id, order.total_amount, `Payout for Order #${order.order_number}`, order.order_number]
+            );
+
+            // 2. Update Order Payout Status
+            await conn.execute("UPDATE orders SET payout_status = 'completed', payment_status = 'paid' WHERE id = ?", [order.id]);
+
+            processedCount++;
+        }
+
+        await conn.end();
+        res.json({ message: 'Escrow processing complete', processed: processedCount });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get User Profile
+app.get('/api/user/profile', async (req, res) => {
+    const userId = req.query.user_id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(
+            'SELECT id, username, email, phone, state_id, city_id, lga_id, shop_address FROM users WHERE id = ?',
+            [userId]
+        );
+        await conn.end();
+        
+        if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        res.json(rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Update User Profile
+app.put('/api/user/profile', async (req, res) => {
+    const { user_id, username, phone, state_id, city_id, lga_id, shop_address } = req.body;
+    if (!user_id) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const conn = await getDb();
+        
+        // Basic validation (optional)
+        if (!username) return res.status(400).json({ error: 'Username is required' });
+
+        await conn.execute(
+            'UPDATE users SET username = ?, phone = ?, state_id = ?, city_id = ?, lga_id = ?, shop_address = ? WHERE id = ?',
+            [username, phone || null, state_id || null, city_id || null, lga_id || null, shop_address || null, user_id]
+        );
+
+        await conn.end();
+        res.json({ message: 'Profile updated successfully' });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });

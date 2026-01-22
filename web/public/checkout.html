@@ -11,27 +11,163 @@
 <body data-theme="light">
     <div id="nav-placeholder"></div>
 
-    <section class="py-5">
+    <section class="py-5 bg-light">
         <div class="container">
-            <div class="mx-auto" style="max-width: 760px;">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h2 class="mb-3">Checkout</h2>
-                        <div id="alert-box"></div>
-                        <form id="checkout-form" class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label">Shipping Address</label>
-                                <textarea id="shipping_address" class="form-control" rows="3" required placeholder="Enter your full delivery address"></textarea>
+            <h2 class="mb-4 fw-bold">Checkout</h2>
+            
+            <div class="row g-5">
+                <!-- Left Column: Forms -->
+                <div class="col-lg-8">
+                    <div id="alert-box"></div>
+                    
+                    <!-- Shipping Address -->
+                    <div class="card shadow-sm border-0 rounded-4 mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3"><i class="fas fa-map-marker-alt text-primary me-2"></i>Shipping Address</h5>
+                            <textarea id="shipping_address" class="form-control" rows="3" required placeholder="Enter your full delivery address (Street, City, State)"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="card shadow-sm border-0 rounded-4 mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3"><i class="fas fa-wallet text-primary me-2"></i>Payment Method</h5>
+                            
+                            <div class="payment-options">
+                                <div class="form-check p-3 border rounded-3 mb-2 selected-method" id="method-card">
+                                    <input class="form-check-input" type="radio" name="paymentMethod" id="pay_card" value="card" checked>
+                                    <label class="form-check-label w-100 d-flex justify-content-between align-items-center" for="pay_card">
+                                        <span>
+                                            <span class="fw-bold d-block">Pay with Card</span>
+                                            <small class="text-muted">Secure payment via Paystack/Flutterwave</small>
+                                        </span>
+                                        <span>
+                                            <i class="fab fa-cc-visa fa-lg text-primary"></i>
+                                            <i class="fab fa-cc-mastercard fa-lg text-danger"></i>
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div class="form-check p-3 border rounded-3" id="method-transfer">
+                                    <input class="form-check-input" type="radio" name="paymentMethod" id="pay_transfer" value="transfer">
+                                    <label class="form-check-label w-100 d-flex justify-content-between align-items-center" for="pay_transfer">
+                                        <span>
+                                            <span class="fw-bold d-block">Bank Transfer</span>
+                                            <small class="text-muted">Direct transfer to NIECOMM Escrow Account</small>
+                                        </span>
+                                        <i class="fas fa-university fa-lg text-secondary"></i>
+                                    </label>
+                                </div>
                             </div>
-                            <div class="col-12 d-flex justify-content-end">
-                                <button class="btn btn-primary" type="submit">Place Order</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Order Summary -->
+                <div class="col-lg-4">
+                    <div class="card shadow-sm border-0 rounded-4 position-sticky" style="top: 100px;">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-4">Order Summary</h5>
+                            
+                            <div id="order-items-list" class="mb-3" style="max-height: 300px; overflow-y: auto;">
+                                <!-- Items injected here -->
                             </div>
-                        </form>
+                            
+                            <hr>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Subtotal</span>
+                                <span class="fw-bold" id="subtotal">₦0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Shipping</span>
+                                <span class="text-success fw-bold">Free</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Escrow Fee</span>
+                                <span class="text-success fw-bold">Waived</span>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="d-flex justify-content-between mb-4">
+                                <span class="fw-bold fs-5">Total</span>
+                                <span class="fw-bold fs-5 text-primary" id="total-amount">₦0.00</span>
+                            </div>
+
+                            <button id="place-order-btn" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-sm">
+                                <i class="fas fa-lock me-2"></i> Pay Now
+                            </button>
+                            
+                            <div class="text-center mt-3">
+                                <small class="text-muted"><i class="fas fa-shield-alt text-success me-1"></i> 100% Secure Escrow Payment</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- Payment Modal -->
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Secure Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Card Payment Form -->
+                    <div id="card-payment-form">
+                        <div class="text-center mb-4">
+                            <div class="display-6 fw-bold text-primary mb-1" id="modal-amount">₦0.00</div>
+                            <small class="text-muted">NIECOMM Escrow Account</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small text-muted text-uppercase fw-bold">Card Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-credit-card text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0" placeholder="0000 0000 0000 0000" id="card-number">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label small text-muted text-uppercase fw-bold">Expiry</label>
+                                <input type="text" class="form-control" placeholder="MM/YY" id="card-expiry">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label small text-muted text-uppercase fw-bold">CVV</label>
+                                <input type="password" class="form-control" placeholder="123" id="card-cvv">
+                            </div>
+                        </div>
+
+                        <button class="btn btn-success w-100 py-3 rounded-3 fw-bold mt-2" onclick="processPayment()">
+                            Pay <span id="pay-btn-amount"></span>
+                        </button>
+                    </div>
+
+                    <!-- Processing State -->
+                    <div id="payment-processing" class="text-center py-5 d-none">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+                        <h5 class="fw-bold">Processing Payment...</h5>
+                        <p class="text-muted">Please do not close this window.</p>
+                    </div>
+
+                    <!-- Success State -->
+                    <div id="payment-success" class="text-center py-4 d-none">
+                        <div class="mb-3">
+                            <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                        </div>
+                        <h4 class="fw-bold text-success">Payment Successful!</h4>
+                        <p class="text-muted">Your funds are now held in Escrow.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
@@ -39,21 +175,85 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadNav();
             checkAuth();
-            
-            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-            if (cart.length === 0) {
-                alert('Your cart is empty!');
-                window.location.href = 'products.html';
-            }
+            loadCartSummary();
         });
 
-        document.getElementById('checkout-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // Toggle Payment Method Styles
+        document.querySelectorAll('input[name="paymentMethod"]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                document.querySelectorAll('.payment-options .form-check').forEach(el => el.classList.remove('selected-method', 'border-primary', 'bg-light'));
+                const parent = e.target.closest('.form-check');
+                parent.classList.add('selected-method', 'border-primary', 'bg-light');
+            });
+        });
+
+        function loadCartSummary() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (cart.length === 0) {
+                window.location.href = 'products.html';
+                return;
+            }
+
+            const itemsContainer = document.getElementById('order-items-list');
+            let total = 0;
+
+            itemsContainer.innerHTML = cart.map(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                return `
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center">
+                            <img src="${item.image || 'https://via.placeholder.com/50'}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                            <div>
+                                <h6 class="mb-0 text-truncate" style="max-width: 150px;">${item.name}</h6>
+                                <small class="text-muted">Qty: ${item.quantity}</small>
+                            </div>
+                        </div>
+                        <span class="fw-bold">₦${itemTotal.toLocaleString()}</span>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('subtotal').innerText = `₦${total.toLocaleString()}`;
+            document.getElementById('total-amount').innerText = `₦${total.toLocaleString()}`;
+            document.getElementById('modal-amount').innerText = `₦${total.toLocaleString()}`;
+            document.getElementById('pay-btn-amount').innerText = `₦${total.toLocaleString()}`;
+        }
+
+        document.getElementById('place-order-btn').addEventListener('click', () => {
+            const address = document.getElementById('shipping_address').value;
+            if (!address) {
+                alert('Please enter a shipping address');
+                return;
+            }
+            
+            // Show Payment Modal
+            const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            modal.show();
+        });
+
+        function processPayment() {
+            // Simulate Payment Processing
+            document.getElementById('card-payment-form').classList.add('d-none');
+            document.getElementById('payment-processing').classList.remove('d-none');
+
+            setTimeout(() => {
+                // Success
+                document.getElementById('payment-processing').classList.add('d-none');
+                document.getElementById('payment-success').classList.remove('d-none');
+                
+                // Submit Order after delay
+                setTimeout(() => submitOrder(), 1500);
+            }, 2000);
+        }
+
+        async function submitOrder() {
             const user = checkAuth();
             if (!user) return;
 
             const address = document.getElementById('shipping_address').value;
             const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
             const alertBox = document.getElementById('alert-box');
 
             try {
@@ -63,18 +263,22 @@
                     body: JSON.stringify({
                         user_id: user.id,
                         shipping_address: address,
-                        cart: cart
+                        cart: cart,
+                        payment_method: paymentMethod
                     })
                 });
                 
                 const data = await res.json();
                 
                 if (res.ok) {
-                    // Clear cart
+                    // Close modal
+                    const modalEl = document.getElementById('paymentModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
+
                     localStorage.removeItem('cart');
                     updateCartCount();
-                    alertBox.innerHTML = `<div class="alert alert-success">Order placed successfully! Order #${data.orderNumber}. Redirecting...</div>`;
-                    setTimeout(() => window.location.href = 'orders.html', 2000);
+                    window.location.href = 'orders.html';
                 } else {
                     alertBox.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to place order'}</div>`;
                 }
@@ -82,7 +286,7 @@
                 console.error(err);
                 alertBox.innerHTML = '<div class="alert alert-danger">An error occurred.</div>';
             }
-        });
+        }
     </script>
 </body>
 </html>

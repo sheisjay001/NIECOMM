@@ -68,6 +68,16 @@
                             ${o.status === 'delivered' && !isVendor ? 
                                 `<button class="btn btn-sm btn-outline-danger" onclick="requestReturn('${o.id}', '${o.order_number}')">Return</button>` 
                                 : ''}
+                            
+                            ${isVendor && o.status !== 'delivered' && o.status !== 'cancelled' ?
+                                `<div class="dropdown">
+                                  <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Update Status</button>
+                                  <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="updateStatus('${o.id}', 'shipped')">Mark Shipped</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="updateStatus('${o.id}', 'delivered')">Mark Delivered</a></li>
+                                  </ul>
+                                </div>`
+                                : ''}
                         </td>
                     </tr>
                 `).join('');
@@ -75,6 +85,28 @@
                 console.error(err);
             }
         });
+
+        async function updateStatus(orderId, status) {
+            if (!confirm(`Are you sure you want to mark this order as ${status}?`)) return;
+
+            try {
+                const res = await fetch(`/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+
+                if (res.ok) {
+                    alert('Order status updated');
+                    window.location.reload();
+                } else {
+                    alert('Failed to update status');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error updating status');
+            }
+        }
 
         function getStatusColor(status) {
             if (status === 'completed' || status === 'delivered') return 'success';

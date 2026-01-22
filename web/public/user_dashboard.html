@@ -30,7 +30,7 @@
                         </div>
                         <p class="mb-1"><strong id="user-name">Loading...</strong></p>
                         <p class="text-muted mb-2" id="user-email">...</p>
-                        <a href="#" class="btn btn-outline-primary btn-sm mt-2">Edit Profile</a>
+                        <a href="#" onclick="openProfileModal()" class="btn btn-outline-primary btn-sm mt-2">Edit Profile</a>
                     </div>
                 </div>
             </div>
@@ -122,9 +122,192 @@
         </div>
     </div>
 
+    <!-- Edit Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="profile-form">
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" id="edit-username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" id="edit-phone" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">State</label>
+                            <select id="edit-state" class="form-select">
+                                <option value="">Select State</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">LGA</label>
+                                <select id="edit-lga" class="form-select">
+                                    <option value="">Select LGA</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">City</label>
+                                <select id="edit-city" class="form-select">
+                                    <option value="">Select City</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea id="edit-address" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script>
+        // Profile Modal Logic
+        let profileModal;
+        
+        async function openProfileModal() {
+            if (!profileModal) profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+            
+            const user = checkAuth();
+            if (!user) return;
+
+            // Load States first if empty
+            const stateSelect = document.getElementById('edit-state');
+            if (stateSelect.children.length <= 1) {
+                await loadStates();
+            }
+
+            try {
+                // Fetch current profile
+                const res = await fetch(`/api/user/profile?user_id=${user.id}`);
+                if (!res.ok) throw new Error('Failed to fetch profile');
+                const profile = await res.json();
+
+                // Fill form
+                document.getElementById('edit-username').value = profile.username || '';
+                document.getElementById('edit-phone').value = profile.phone || '';
+                document.getElementById('edit-address').value = profile.shop_address || ''; // Using shop_address as generic address
+
+                // Set State and trigger change to load sub-locations
+                if (profile.state_id) {
+                    stateSelect.value = profile.state_id;
+                    await loadLocations(profile.state_id);
+                    
+                    // Set City and LGA after options are loaded
+                    if (profile.city_id) document.getElementById('edit-city').value = profile.city_id;
+                    if (profile.lga_id) document.getElementById('edit-lga').value = profile.lga_id;
+                }
+
+                profileModal.show();
+            } catch (err) {
+                console.error(err);
+                alert('Error loading profile');
+            }
+        }
+
+        async function loadStates() {
+            try {
+                const res = await fetch('/api/states');
+                const states = await res.json();
+                const select = document.getElementById('edit-state');
+                select.innerHTML = '<option value="">Select State</option>';
+                states.forEach(s => {
+                    select.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+                });
+
+                select.addEventListener('change', (e) => loadLocations(e.target.value));
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadLocations(stateId) {
+            if (!stateId) return;
+            
+            const lgaSelect = document.getElementById('edit-lga');
+            const citySelect = document.getElementById('edit-city');
+            
+            lgaSelect.innerHTML = '<option value="">Loading...</option>';
+            citySelect.innerHTML = '<option value="">Loading...</option>';
+
+            try {
+                const [lgaRes, cityRes] = await Promise.all([
+                    fetch(`/api/states/${stateId}/lgas`),
+                    fetch(`/api/states/${stateId}/cities`)
+                ]);
+
+                const lgas = await lgaRes.json();
+                const cities = await cityRes.json();
+
+                lgaSelect.innerHTML = '<option value="">Select LGA</option>';
+                lgas.forEach(l => lgaSelect.innerHTML += `<option value="${l.id}">${l.name}</option>`);
+
+                citySelect.innerHTML = '<option value="">Select City</option>';
+                cities.forEach(c => citySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.getElementById('profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = checkAuth();
+            if (!user) return;
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = 'Saving...';
+
+            const data = {
+                user_id: user.id,
+                username: document.getElementById('edit-username').value,
+                phone: document.getElementById('edit-phone').value,
+                state_id: document.getElementById('edit-state').value,
+                lga_id: document.getElementById('edit-lga').value,
+                city_id: document.getElementById('edit-city').value,
+                shop_address: document.getElementById('edit-address').value
+            };
+
+            try {
+                const res = await fetch('/api/user/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (res.ok) {
+                    alert('Profile updated successfully!');
+                    profileModal.hide();
+                    window.location.reload(); // Refresh to show new data
+                } else {
+                    const err = await res.json();
+                    alert(err.error || 'Failed to update profile');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error saving profile');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        });
+
         // Expose showTracking globally
         window.showTracking = function(orderId, status, date) {
             const modal = new bootstrap.Modal(document.getElementById('trackingModal'));
