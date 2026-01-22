@@ -181,6 +181,7 @@
                                             <th>Status</th>
                                             <th>Payment</th>
                                             <th>Total</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="orders-table">
@@ -477,7 +478,7 @@
                 tbody.innerHTML = orders.map(o => `
                     <tr>
                         <td><span class="fw-bold text-primary">${o.order_number}</span></td>
-                        <td>${o.customer_name}</td>
+                        <td>${o.customer_name || 'Customer'}</td>
                         <td>${new Date(o.created_at).toLocaleDateString()}</td>
                         <td>
                             <span class="badge bg-${getStatusColor(o.status)}">${o.status.toUpperCase()}</span>
@@ -486,8 +487,37 @@
                             <span class="badge bg-${o.payment_status === 'paid' ? 'success' : 'warning'} text-dark">${o.payment_status.toUpperCase()}</span>
                         </td>
                         <td class="fw-bold">${formatCurrency(o.total_amount)}</td>
+                        <td>
+                            ${o.payment_status !== 'paid' ? 
+                                `<button onclick="confirmPayment(${o.id})" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-check me-1"></i> Confirm Payment
+                                </button>` : 
+                                '<span class="text-success small"><i class="fas fa-check-circle"></i> Paid</span>'
+                            }
+                        </td>
                     </tr>
                 `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function confirmPayment(orderId) {
+            if (!confirm('Confirm that you have received payment for this order? This will secure the funds in Escrow.')) return;
+
+            try {
+                const res = await fetch(`/api/admin/orders/${orderId}/payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'paid' })
+                });
+
+                if (res.ok) {
+                    loadOrders();
+                    loadEscrowStats(); // Refresh escrow stats
+                } else {
+                    alert('Failed to update payment status');
+                }
             } catch (err) {
                 console.error(err);
             }

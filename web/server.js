@@ -933,6 +933,20 @@ app.post('/api/admin/verifications/:id', async (req, res) => {
     }
 });
 
+// Admin: Update Order Payment Status
+app.post('/api/admin/orders/:id/payment', async (req, res) => {
+    const { status } = req.body;
+    try {
+        const conn = await getDb();
+        await conn.execute('UPDATE orders SET payment_status = ? WHERE id = ?', [status, req.params.id]);
+        await conn.end();
+        res.json({ message: 'Payment status updated' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Admin: Get Returns
 app.get('/api/admin/returns', async (req, res) => {
     try {

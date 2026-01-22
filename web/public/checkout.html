@@ -109,8 +109,48 @@
         </div>
     </section>
 
-    <!-- Payment Modal -->
-    <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+                    <!-- Bank Transfer Instructions Modal -->
+                    <div class="modal fade" id="bankTransferModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content rounded-4 border-0">
+                                <div class="modal-header border-0 pb-0">
+                                    <h5 class="modal-title fw-bold">Bank Transfer Instructions</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body p-4">
+                                    <div class="alert alert-info border-0 d-flex align-items-center mb-4">
+                                        <i class="fas fa-info-circle fs-4 me-3"></i>
+                                        <div>
+                                            Please transfer the exact amount of <strong id="transfer-amount" class="text-primary"></strong> to the account below.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-light p-4 rounded-3 mb-4 border text-center">
+                                        <p class="text-muted small text-uppercase mb-1">Bank Name</p>
+                                        <h5 class="fw-bold mb-3">Zenith Bank</h5>
+                                        
+                                        <p class="text-muted small text-uppercase mb-1">Account Number</p>
+                                        <h3 class="fw-bold font-monospace text-primary mb-3">1010101010</h3>
+                                        
+                                        <p class="text-muted small text-uppercase mb-1">Account Name</p>
+                                        <h5 class="fw-bold mb-0">NIECOMM ESCROW SERVICES</h5>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Upload Proof of Payment (Optional)</label>
+                                        <input type="file" class="form-control" id="proof-upload">
+                                    </div>
+
+                                    <button class="btn btn-primary w-100 py-3 rounded-pill fw-bold" onclick="confirmTransfer()">
+                                        I have made the transfer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Modal (Card) -->
+                    <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4 border-0">
                 <div class="modal-header border-0 pb-0">
@@ -227,10 +267,33 @@
                 return;
             }
             
-            // Show Payment Modal
-            const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
-            modal.show();
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+            if (paymentMethod === 'transfer') {
+                document.getElementById('transfer-amount').textContent = document.getElementById('total-amount').textContent;
+                const modal = new bootstrap.Modal(document.getElementById('bankTransferModal'));
+                modal.show();
+            } else {
+                // Show Card Payment Modal
+                const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+                modal.show();
+            }
         });
+
+        function confirmTransfer() {
+            // Hide transfer modal
+            const modalEl = document.getElementById('bankTransferModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+
+            // Simulate processing
+            const alertBox = document.getElementById('alert-box');
+            alertBox.innerHTML = '<div class="alert alert-info">Verifying transfer details...</div>';
+            
+            setTimeout(() => {
+                submitOrder();
+            }, 1500);
+        }
 
         function processPayment() {
             // Simulate Payment Processing
