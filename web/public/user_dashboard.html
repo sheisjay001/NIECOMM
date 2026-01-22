@@ -308,6 +308,33 @@
             }
         });
 
+        // Expose confirmOrder globally
+        window.confirmOrder = async function(orderId, type) {
+            const msg = type === 'receipt' 
+                ? 'Confirm that you have received this order? This will update the status to Delivered.' 
+                : 'Confirm that you are satisfied with the product? This will release funds to the vendor.';
+            
+            if (!confirm(msg)) return;
+
+            try {
+                const res = await fetch(`/api/orders/${orderId}/confirm`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (res.ok) {
+                    alert('Order confirmed successfully!');
+                    window.location.reload();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to confirm order');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error confirming order');
+            }
+        };
+
         // Expose showTracking globally
         window.showTracking = function(orderId, status, date) {
             const modal = new bootstrap.Modal(document.getElementById('trackingModal'));
@@ -372,7 +399,15 @@
                 if (data.orders.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No recent orders found.</td></tr>';
                 } else {
-                    tbody.innerHTML = data.orders.map(o => `
+                    tbody.innerHTML = data.orders.map(o => {
+                        let actionBtn = '';
+                        if (o.status === 'shipped') {
+                            actionBtn = `<button onclick="confirmOrder(${o.id}, 'receipt')" class="btn btn-sm btn-success rounded-pill ms-2" style="font-size: 0.75rem;">Confirm Receipt</button>`;
+                        } else if (o.status === 'delivered' && o.payout_status !== 'completed') {
+                            actionBtn = `<button onclick="confirmOrder(${o.id}, 'satisfaction')" class="btn btn-sm btn-success rounded-pill ms-2" style="font-size: 0.75rem;">Confirm Satisfaction</button>`;
+                        }
+
+                        return `
                         <tr>
                             <td class="ps-3 fw-bold">#${o.order_number}</td>
                             <td>₦${Number(o.total_amount).toLocaleString()}</td>
@@ -387,9 +422,10 @@
                                     onclick="showTracking('${o.order_number}', '${o.status}', '${o.created_at}')">
                                     Track
                                 </button>
+                                ${actionBtn}
                             </td>
                         </tr>
-                    `).join('');
+                    `}).join('');
                 }
 
                 // Fetch Returns

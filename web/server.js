@@ -701,7 +701,7 @@ app.get('/api/user/dashboard', async (req, res) => {
 
         // Get Recent Orders
         const [orders] = await conn.execute(
-            'SELECT order_number, total_amount, status, payment_status, created_at FROM orders WHERE customer_id = ? ORDER BY id DESC LIMIT 5',
+            'SELECT id, order_number, total_amount, status, payment_status, payout_status, created_at FROM orders WHERE customer_id = ? ORDER BY id DESC LIMIT 5',
             [userId]
         );
 
@@ -1186,7 +1186,7 @@ app.get('/api/orders', async (req, res) => {
     try {
         const conn = await getDb();
         const [rows] = await conn.execute(
-            'SELECT id, order_number, total_amount, status, payment_status, created_at FROM orders WHERE customer_id = ? ORDER BY id DESC',
+            'SELECT id, order_number, total_amount, status, payment_status, payout_status, created_at FROM orders WHERE customer_id = ? ORDER BY id DESC',
             [userId]
         );
         await conn.end();
@@ -1654,6 +1654,61 @@ app.post('/api/admin/process-escrow', async (req, res) => {
 
         await conn.end();
         res.json({ message: 'Escrow processing complete', processed: processedCount });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// User: Confirm Order Receipt & Satisfaction
+app.post('/api/orders/:id/confirm', async (req, res) => {
+    const orderId = req.params.id;
+    try {
+        const conn = await getDb();
+        
+        // 1. Get Order Details
+        const [orders] = await conn.execute(`
+            SELECT o.id, o.order_number, o.total_amount, o.status, o.payout_status, o.payment_status, p.vendor_id
+            FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            WHERE o.id = ?
+            GROUP BY o.id
+        `, [orderId]);
+
+        if (orders.length === 0) {
+            await conn.end();
+            return res.status(404).json({ error: 'Order not found' });
+        }
+
+        const order = orders[0];
+
+        // Check if already processed
+        if (order.payout_status === 'completed') {
+            await conn.end();
+            return res.status(400).json({ error: 'Order already completed' });
+        }
+
+        // 2. Credit Vendor Wallet
+        await conn.execute(
+            "INSERT INTO wallet_transactions (user_id, amount, type, description, status, reference) VALUES (?, ?, 'credit', ?, 'completed', ?)",
+            [order.vendor_id, order.total_amount, `Payout for Order #${order.order_number} (Confirmed by Buyer)`, order.order_number]
+        );
+
+        // 3. Update Order Status
+        // Mark as delivered (if not already), paid, and payout completed
+        await conn.execute(`
+            UPDATE orders 
+            SET status = 'delivered', 
+                delivered_at = IF(delivered_at IS NULL, NOW(), delivered_at),
+                payment_status = 'paid',
+                payout_status = 'completed'
+            WHERE id = ?
+        `, [orderId]);
+
+        await conn.end();
+        res.json({ message: 'Order confirmed and funds released to vendor' });
+
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
