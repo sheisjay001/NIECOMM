@@ -795,6 +795,14 @@ app.post('/api/vendor/products', upload.single('image'), async (req, res) => {
 
     try {
         const conn = await getDb();
+        
+        // Verify user exists first
+        const [userCheck] = await conn.execute('SELECT id FROM users WHERE id = ?', [user_id]);
+        if (userCheck.length === 0) {
+            await conn.end();
+            return res.status(400).json({ error: 'Invalid User ID. Please log out and log in again.' });
+        }
+
         await conn.execute(
             'INSERT INTO products (vendor_id, name, description, price, quantity, category_id, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
             [user_id, name, description, price, quantity || 0, category_id || 1, image]
@@ -802,8 +810,8 @@ app.post('/api/vendor/products', upload.single('image'), async (req, res) => {
         await conn.end();
         res.status(201).json({ message: 'Product added successfully' });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to add product' });
+        console.error('Add Product Error:', err);
+        res.status(500).json({ error: 'Failed to add product: ' + err.message });
     }
 });
 

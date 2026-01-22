@@ -159,11 +159,13 @@
                         body: formData
                     });
                     
+                    const data = await res.json();
+
                     if (res.ok) {
                         alert('Product added successfully');
                         location.reload();
                     } else {
-                        alert('Failed to add product');
+                        alert(data.error || 'Failed to add product');
                     }
                 } catch (err) {
                     console.error(err);
