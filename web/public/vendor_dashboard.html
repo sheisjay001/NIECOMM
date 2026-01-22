@@ -8,6 +8,41 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-link {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .sidebar-link:hover {
+            background-color: #f8f9fa;
+            color: #0d6efd !important;
+        }
+        .sidebar-link.active {
+            background-color: #0d6efd !important;
+            color: white !important;
+        }
+        .section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-premium {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+            transition: transform 0.2s;
+        }
+        .card-premium:hover {
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
 <body class="bg-light">
     
@@ -28,23 +63,28 @@
                 </div>
                 <ul class="nav flex-column gap-2">
                     <li class="nav-item">
-                        <a href="vendor_dashboard.html" class="nav-link active btn-premium-primary text-white rounded text-start mb-2">
+                        <a onclick="showSection('dashboard')" class="nav-link sidebar-link active text-dark rounded text-start mb-2" id="nav-dashboard">
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="vendor_products.html" class="nav-link text-dark hover-bg-light rounded mb-2">
+                        <a onclick="showSection('products')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-products">
                             <i class="fas fa-box me-2"></i> Products
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="orders.html" class="nav-link text-dark hover-bg-light rounded mb-2">
+                        <a onclick="showSection('orders')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-orders">
                             <i class="fas fa-shopping-bag me-2"></i> Orders
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="messages.html" class="nav-link text-dark hover-bg-light rounded mb-2">
-                            <i class="fas fa-envelope me-2"></i> Messages
+                        <a onclick="showSection('wallet')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-wallet">
+                            <i class="fas fa-wallet me-2"></i> Wallet
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a onclick="showSection('settings')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-settings">
+                            <i class="fas fa-cog me-2"></i> Settings
                         </a>
                     </li>
                     <li class="nav-item mt-4">
@@ -57,112 +97,306 @@
 
             <!-- Main Content -->
             <div class="col-md-9 col-lg-9">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 class="fw-bold mb-1">Overview</h2>
-                        <p class="text-muted mb-0">Welcome back, here's what's happening with your store.</p>
+                
+                <!-- Section: Dashboard -->
+                <div id="section-dashboard" class="section active">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="fw-bold mb-1">Overview</h2>
+                            <p class="text-muted mb-0">Welcome back, here's what's happening with your store.</p>
+                        </div>
+                        <div id="verified-badge"></div>
                     </div>
-                    <div id="verified-badge"></div>
+
+                    <!-- Stats Cards -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-3">
+                            <div class="card-premium h-100 p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <p class="text-muted small mb-1">Total Products</p>
+                                        <h3 class="fw-bold mb-0" id="prod-count">0</h3>
+                                    </div>
+                                    <div class="bg-primary bg-opacity-10 p-2 rounded-circle">
+                                        <i class="fas fa-box text-primary"></i>
+                                    </div>
+                                </div>
+                                <a onclick="showSection('products')" class="small text-decoration-none text-primary" style="cursor:pointer">Manage Inventory &rarr;</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card-premium h-100 p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <p class="text-muted small mb-1">Total Sales</p>
+                                        <h3 class="fw-bold mb-0" id="sales-count">0</h3>
+                                    </div>
+                                    <div class="bg-success bg-opacity-10 p-2 rounded-circle">
+                                        <i class="fas fa-shopping-cart text-success"></i>
+                                    </div>
+                                </div>
+                                <span class="small text-success"><i class="fas fa-arrow-up"></i> +12% this week</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card-premium h-100 p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <p class="text-muted small mb-1">Pending Returns</p>
+                                        <h3 class="fw-bold mb-0" id="return-count">0</h3>
+                                    </div>
+                                    <div class="bg-danger bg-opacity-10 p-2 rounded-circle">
+                                        <i class="fas fa-undo text-danger"></i>
+                                    </div>
+                                </div>
+                                <a href="messages.html" class="small text-decoration-none text-danger">Review Requests &rarr;</a>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card-premium h-100 p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <p class="text-muted small mb-1">Store Rating</p>
+                                        <h3 class="fw-bold mb-0" id="avg-rating">0.0</h3>
+                                    </div>
+                                    <div class="bg-warning bg-opacity-10 p-2 rounded-circle">
+                                        <i class="fas fa-star text-warning"></i>
+                                    </div>
+                                </div>
+                                <span class="small text-muted">Based on reviews</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-8">
+                            <div class="card-premium p-4 h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="fw-bold mb-0">Sales Analytics</h5>
+                                </div>
+                                <canvas id="salesChart" height="250"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card-premium p-4 mb-4">
+                                <h5 class="fw-bold mb-3">Verification Status</h5>
+                                <div class="d-flex align-items-center mb-3">
+                                    <div id="ver-icon" class="me-3"></div>
+                                    <div>
+                                        <p class="mb-0 fw-bold text-uppercase" id="ver-status">Checking...</p>
+                                        <small class="text-muted">Required for visibility</small>
+                                    </div>
+                                </div>
+                                <a href="onboarding.html" class="btn btn-premium-primary w-100 btn-sm">Update Documents</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Stats Cards -->
-                <div class="row g-4 mb-4">
-                    <div class="col-md-3">
-                        <div class="card-premium h-100 p-4">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div>
-                                    <p class="text-muted small mb-1">Total Products</p>
-                                    <h3 class="fw-bold mb-0" id="prod-count">0</h3>
-                                </div>
-                                <div class="bg-primary bg-opacity-10 p-2 rounded-circle">
-                                    <i class="fas fa-box text-primary"></i>
-                                </div>
-                            </div>
-                            <a href="vendor_products.html" class="small text-decoration-none">Manage Inventory &rarr;</a>
-                        </div>
+                <!-- Section: Products -->
+                <div id="section-products" class="section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="fw-bold mb-0">My Products</h2>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                            <i class="fas fa-plus me-2"></i> Add Product
+                        </button>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card-premium h-100 p-4">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div>
-                                    <p class="text-muted small mb-1">Total Sales</p>
-                                    <h3 class="fw-bold mb-0" id="sales-count">0</h3>
-                                </div>
-                                <div class="bg-success bg-opacity-10 p-2 rounded-circle">
-                                    <i class="fas fa-shopping-cart text-success"></i>
-                                </div>
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Image</th>
+                                            <th>Name</th>
+                                            <th>Price</th>
+                                            <th>Stock</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="products-body">
+                                        <tr><td colspan="6" class="text-center py-4">Loading products...</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <span class="small text-success"><i class="fas fa-arrow-up"></i> +12% this week</span>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card-premium h-100 p-4">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div>
-                                    <p class="text-muted small mb-1">Pending Returns</p>
-                                    <h3 class="fw-bold mb-0" id="return-count">0</h3>
-                                </div>
-                                <div class="bg-danger bg-opacity-10 p-2 rounded-circle">
-                                    <i class="fas fa-undo text-danger"></i>
-                                </div>
-                            </div>
-                            <a href="messages.html" class="small text-decoration-none text-danger">Review Requests &rarr;</a>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card-premium h-100 p-4">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div>
-                                    <p class="text-muted small mb-1">Store Rating</p>
-                                    <h3 class="fw-bold mb-0" id="avg-rating">0.0</h3>
-                                </div>
-                                <div class="bg-warning bg-opacity-10 p-2 rounded-circle">
-                                    <i class="fas fa-star text-warning"></i>
-                                </div>
-                            </div>
-                            <span class="small text-muted">Based on 12 reviews</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="row g-4">
-                    <!-- Sales Chart -->
-                    <div class="col-md-8">
-                        <div class="card-premium p-4 h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h5 class="fw-bold mb-0">Sales Analytics</h5>
-                                <select class="form-select form-select-sm w-auto border-0 bg-light">
-                                    <option>Last 7 Days</option>
-                                    <option>Last 30 Days</option>
-                                </select>
+                <!-- Section: Orders -->
+                <div id="section-orders" class="section">
+                    <h2 class="fw-bold mb-4">Manage Orders</h2>
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th>Date</th>
+                                            <th>Items</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="orders-body">
+                                        <tr><td colspan="6" class="text-center py-4">Loading orders...</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <canvas id="salesChart" height="250"></canvas>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Verification & Quick Actions -->
-                    <div class="col-md-4">
-                        <div class="card-premium p-4 mb-4">
-                            <h5 class="fw-bold mb-3">Verification Status</h5>
-                            <div class="d-flex align-items-center mb-3">
-                                <div id="ver-icon" class="me-3"></div>
-                                <div>
-                                    <p class="mb-0 fw-bold text-uppercase" id="ver-status">Checking...</p>
-                                    <small class="text-muted">Required for visibility</small>
+                <!-- Section: Wallet -->
+                <div id="section-wallet" class="section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="fw-bold mb-0">My Wallet</h2>
+                        <button class="btn btn-premium-primary" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                            <i class="fas fa-money-bill-wave me-2"></i> Request Withdrawal
+                        </button>
+                    </div>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <div class="card-premium h-100 p-5 bg-primary text-white">
+                                <div class="d-flex justify-content-between align-items-start mb-4">
+                                    <div>
+                                        <p class="text-white-50 mb-1">Available Balance</p>
+                                        <h1 class="fw-bold mb-0 display-4">₦<span id="wallet-balance">0.00</span></h1>
+                                    </div>
+                                    <div class="bg-white bg-opacity-25 p-3 rounded-circle">
+                                        <i class="fas fa-wallet fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-3">
+                                    <span class="badge bg-white text-primary rounded-pill px-3 py-2"><i class="fas fa-arrow-up me-1"></i> Active</span>
                                 </div>
                             </div>
-                            <a href="onboarding.html" class="btn btn-premium-primary w-100 btn-sm">Update Documents</a>
                         </div>
+                    </div>
 
-                        <div class="card-premium p-4">
-                            <h5 class="fw-bold mb-3">Quick Actions</h5>
-                            <div class="d-grid gap-2">
-                                <a href="vendor_products.html" class="btn btn-outline-dark btn-sm rounded-pill"><i class="fas fa-plus me-2"></i> Add Product</a>
-                                <a href="orders.html" class="btn btn-outline-dark btn-sm rounded-pill"><i class="fas fa-list me-2"></i> Process Orders</a>
-                                <a href="messages.html" class="btn btn-outline-dark btn-sm rounded-pill"><i class="fas fa-envelope me-2"></i> Support</a>
+                    <div class="card-premium p-4">
+                        <h5 class="fw-bold mb-3">Transaction History</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transaction-list">
+                                    <tr><td colspan="5" class="text-center py-4">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Settings -->
+                <div id="section-settings" class="section">
+                    <h2 class="fw-bold mb-4">Store Settings</h2>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card-premium p-4 mb-4">
+                                <h5 class="fw-bold mb-3">Bank Information</h5>
+                                <form id="bank-form">
+                                    <div class="mb-3">
+                                        <label class="form-label">Bank Name</label>
+                                        <input type="text" class="form-control" id="bank-name" placeholder="e.g. GTBank">
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Account Number</label>
+                                            <input type="text" class="form-control" id="account-number" placeholder="0123456789">
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Account Name</label>
+                                            <input type="text" class="form-control" id="account-name" placeholder="Account Name">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Save Bank Details</button>
+                                </form>
                             </div>
                         </div>
                     </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Product Modal -->
+    <div class="modal fade" id="addProductModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-product-form">
+                        <div class="mb-3">
+                            <label class="form-label">Product Name</label>
+                            <input type="text" id="p-name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Price (₦)</label>
+                            <input type="number" id="p-price" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea id="p-desc" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quantity</label>
+                            <input type="number" id="p-qty" class="form-control" value="1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Image</label>
+                            <input type="file" id="p-image" class="form-control" accept="image/*">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Add Product</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdrawal Modal -->
+    <div class="modal fade" id="withdrawModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">Request Withdrawal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle me-1"></i> Minimum withdrawal amount is ₦1,000.
+                    </div>
+                    <form id="withdraw-form">
+                        <div class="mb-3">
+                            <label class="form-label">Amount (₦)</label>
+                            <input type="number" class="form-control form-control-lg" id="withdraw-amount" required min="1000">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">OTP Verification</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="otp-code" placeholder="Enter 6-digit OTP" required maxlength="6">
+                                <button class="btn btn-outline-secondary" type="button" id="btn-send-otp">Send OTP</button>
+                            </div>
+                            <small class="text-muted">OTP will be sent to your registered email.</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-lg rounded-pill mt-3">Confirm Withdrawal</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -171,16 +405,50 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script>
+        let currentUser = null;
+
         document.addEventListener('DOMContentLoaded', async () => {
             loadNav();
-            const user = checkAuth();
-            if (!user) return;
+            currentUser = checkAuth();
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+            if (currentUser.role !== 'vendor') {
+                window.location.href = 'index.html';
+                return;
+            }
             
-            document.getElementById('sidebar-username').textContent = user.username;
-            document.getElementById('sidebar-initials').textContent = user.username.charAt(0).toUpperCase();
+            document.getElementById('sidebar-username').textContent = currentUser.username;
+            document.getElementById('sidebar-initials').textContent = currentUser.username.charAt(0).toUpperCase();
 
+            // Initial Load
+            loadDashboardStats();
+            
+            // Event Listeners
+            setupForms();
+        });
+
+        function showSection(sectionId) {
+            // Hide all
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+
+            // Show selected
+            document.getElementById(`section-${sectionId}`).classList.add('active');
+            document.getElementById(`nav-${sectionId}`).classList.add('active');
+
+            // Load data
+            if (sectionId === 'dashboard') loadDashboardStats();
+            if (sectionId === 'products') loadProducts();
+            if (sectionId === 'orders') loadOrders();
+            if (sectionId === 'wallet') loadWallet();
+            // Settings loaded on demand or static
+        }
+
+        async function loadDashboardStats() {
             try {
-                const res = await fetch(`/api/vendor/dashboard?user_id=${user.id}`);
+                const res = await fetch(`/api/vendor/dashboard?user_id=${currentUser.id}`);
                 const data = await res.json();
                 
                 const badge = document.getElementById('verified-badge');
@@ -199,7 +467,267 @@
             } catch (err) {
                 console.error(err);
             }
-        });
+        }
+
+        async function loadProducts() {
+            try {
+                const res = await fetch(`/api/vendor/products?user_id=${currentUser.id}`);
+                const products = await res.json();
+                const tbody = document.getElementById('products-body');
+                
+                if (products.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No products found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = products.map(p => `
+                    <tr>
+                        <td>
+                            ${p.image ? `<img src="${p.image}" class="rounded" width="50" height="50" style="object-fit: cover;">` : '<div class="bg-secondary rounded" style="width:50px;height:50px;"></div>'}
+                        </td>
+                        <td class="fw-bold">${p.name}</td>
+                        <td>₦${Number(p.price).toLocaleString()}</td>
+                        <td>${p.quantity}</td>
+                        <td><span class="badge bg-success">Active</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${p.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const res = await fetch(`/api/vendor/orders?user_id=${currentUser.id}`);
+                const orders = await res.json();
+                const tbody = document.getElementById('orders-body');
+                
+                if (orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No orders found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = orders.map(o => `
+                    <tr>
+                        <td class="fw-bold">#${o.order_number}</td>
+                        <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                        <td>${o.quantity}x ${o.product_name || 'Item'}</td>
+                        <td>₦${Number(o.total_amount).toLocaleString()}</td>
+                        <td><span class="badge bg-${getStatusColor(o.status)}">${o.status}</span></td>
+                        <td>
+                            ${o.status !== 'delivered' && o.status !== 'cancelled' ?
+                                `<div class="dropdown">
+                                  <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Update</button>
+                                  <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="updateStatus('${o.id}', 'shipped')">Mark Shipped</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="updateStatus('${o.id}', 'delivered')">Mark Delivered</a></li>
+                                  </ul>
+                                </div>`
+                                : '<span class="text-muted small">Completed</span>'}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadWallet() {
+            try {
+                const res = await fetch(`/api/wallet?user_id=${currentUser.id}`);
+                const data = await res.json();
+                
+                document.getElementById('wallet-balance').textContent = Number(data.balance).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+                
+                const tbody = document.getElementById('transaction-list');
+                tbody.innerHTML = '';
+                
+                if (data.transactions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No transactions found</td></tr>';
+                    return;
+                }
+
+                data.transactions.forEach(tx => {
+                    const date = new Date(tx.created_at).toLocaleDateString();
+                    const isCredit = tx.type === 'credit';
+                    const colorClass = isCredit ? 'text-success' : 'text-danger';
+                    const sign = isCredit ? '+' : '-';
+                    const statusBadges = { 'completed': 'bg-success', 'pending': 'bg-warning text-dark', 'failed': 'bg-danger' };
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${date}</td>
+                            <td>${tx.description}</td>
+                            <td><span class="badge bg-light text-dark border">${tx.type.toUpperCase()}</span></td>
+                            <td><span class="badge ${statusBadges[tx.status]}">${tx.status}</span></td>
+                            <td class="text-end fw-bold ${colorClass}">${sign}₦${Number(tx.amount).toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function setupForms() {
+            // Add Product
+            document.getElementById('add-product-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData();
+                formData.append('user_id', currentUser.id);
+                formData.append('name', document.getElementById('p-name').value);
+                formData.append('price', document.getElementById('p-price').value);
+                formData.append('description', document.getElementById('p-desc').value);
+                formData.append('quantity', document.getElementById('p-qty').value);
+                
+                const fileInput = document.getElementById('p-image');
+                if (fileInput.files[0]) {
+                    formData.append('image', fileInput.files[0]);
+                }
+
+                try {
+                    const res = await fetch('/api/vendor/products', { method: 'POST', body: formData });
+                    if (res.ok) {
+                        alert('Product added successfully');
+                        bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+                        loadProducts();
+                        loadDashboardStats(); // update count
+                    } else {
+                        alert('Failed to add product');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Error adding product');
+                }
+            });
+
+            // Send OTP
+            document.getElementById('btn-send-otp').addEventListener('click', async () => {
+                const btn = document.getElementById('btn-send-otp');
+                btn.disabled = true;
+                btn.textContent = 'Sending...';
+                
+                try {
+                    const res = await fetch('/api/auth/send-otp', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ email: currentUser.email })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        alert(data.message);
+                        btn.textContent = 'Sent!';
+                        setTimeout(() => { btn.disabled = false; btn.textContent = 'Resend OTP'; }, 30000);
+                    } else {
+                        alert(data.error);
+                        btn.disabled = false;
+                        btn.textContent = 'Send OTP';
+                    }
+                } catch (err) {
+                    alert('Failed to send OTP');
+                    btn.disabled = false;
+                    btn.textContent = 'Send OTP';
+                }
+            });
+
+            // Withdraw
+            document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const amount = document.getElementById('withdraw-amount').value;
+                const otp = document.getElementById('otp-code').value;
+
+                try {
+                    const res = await fetch('/api/wallet/withdraw', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ user_id: currentUser.id, amount, otp })
+                    });
+                    const data = await res.json();
+                    
+                    if (res.ok) {
+                        alert(data.message);
+                        bootstrap.Modal.getInstance(document.getElementById('withdrawModal')).hide();
+                        loadWallet();
+                    } else {
+                        alert(data.error);
+                    }
+                } catch (err) {
+                    alert('Withdrawal failed');
+                }
+            });
+
+            // Bank Details
+            document.getElementById('bank-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const bankName = document.getElementById('bank-name').value;
+                const accNum = document.getElementById('account-number').value;
+                const accName = document.getElementById('account-name').value;
+
+                try {
+                    const res = await fetch('/api/vendor/profile', {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ 
+                            user_id: currentUser.id, 
+                            bank_name: bankName, 
+                            account_number: accNum, 
+                            account_name: accName 
+                        })
+                    });
+                    
+                    if (res.ok) {
+                        alert('Bank details updated');
+                    }
+                } catch (err) {
+                    alert('Failed to update bank details');
+                }
+            });
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Are you sure you want to delete this product?')) return;
+            try {
+                const res = await fetch(`/api/vendor/products/${id}?user_id=${currentUser.id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadProducts();
+                } else {
+                    alert('Failed to delete product');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function updateStatus(orderId, status) {
+            if (!confirm(`Mark order as ${status}?`)) return;
+            try {
+                const res = await fetch(`/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+
+                if (res.ok) {
+                    loadOrders();
+                } else {
+                    alert('Failed to update status');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function getStatusColor(status) {
+            if (status === 'completed' || status === 'delivered') return 'success';
+            if (status === 'processing') return 'primary';
+            if (status === 'cancelled') return 'danger';
+            return 'secondary';
+        }
     </script>
 </body>
 </html>
