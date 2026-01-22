@@ -674,18 +674,24 @@
 
                 try {
                     const res = await fetch('/api/vendor/products', { method: 'POST', body: formData });
-                    const data = await res.json();
-                    if (res.ok) {
-                        alert(data.message || 'Product added successfully');
-                        bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
-                        loadProducts();
-                        loadDashboardStats(); // update count
-                    } else {
-                        alert(data.error || 'Failed to add product');
+                    const text = await res.text(); // Get raw text first
+                    try {
+                        const data = JSON.parse(text); // Try parsing JSON
+                        if (res.ok) {
+                            alert(data.message || 'Product added successfully');
+                            bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+                            loadProducts();
+                            loadDashboardStats(); // update count
+                        } else {
+                            alert(data.error || 'Failed to add product: ' + text);
+                        }
+                    } catch (e) {
+                        console.error('JSON Parse Error:', text);
+                        alert('Server returned invalid response: ' + text.substring(0, 100));
                     }
                 } catch (err) {
                     console.error(err);
-                    alert('Error adding product');
+                    alert('Error adding product: ' + err.message);
                 }
             });
 

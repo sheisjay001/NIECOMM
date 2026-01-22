@@ -803,8 +803,10 @@ app.get('/api/vendor/products', async (req, res) => {
 
 // Add Product
 app.post('/api/vendor/products', upload.single('image'), async (req, res) => {
+    console.log('Received product add request:', req.body);
     const { user_id, name, description, price, quantity, category_id } = req.body;
     if (!user_id || !name || !price) {
+        console.log('Missing fields:', { user_id, name, price });
         return res.status(400).json({ error: 'Missing required fields' });
     }
     
@@ -816,6 +818,7 @@ app.post('/api/vendor/products', upload.single('image'), async (req, res) => {
         // Verify user exists first
         const [userCheck] = await conn.execute('SELECT id FROM users WHERE id = ?', [user_id]);
         if (userCheck.length === 0) {
+            console.log('User not found:', user_id);
             await conn.end();
             return res.status(400).json({ error: 'Invalid User ID. Please log out and log in again.' });
         }
