@@ -64,7 +64,10 @@ const storage = multer.diskStorage({
         cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 // Database Connection
 const dbConfig = {
@@ -804,6 +807,7 @@ app.get('/api/vendor/products', async (req, res) => {
 // Add Product
 app.post('/api/vendor/products', upload.single('image'), async (req, res) => {
     console.log('Received product add request:', req.body);
+    console.log('Received file:', req.file);
     const { user_id, name, description, price, quantity, category_id } = req.body;
     if (!user_id || !name || !price) {
         console.log('Missing fields:', { user_id, name, price });
@@ -1888,6 +1892,20 @@ app.get('/api/version', (req, res) => {
     res.json({ version: '1.2.0', updated: new Date().toISOString() });
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: 'File is too large. Maximum size is 5MB.' });
+        }
+        return res.status(400).json({ error: 'File upload error: ' + err.message });
+    }
+    if (err) {
+        console.error(err.stack || err);
+        return res.status(500).json({ error: 'Something went wrong!' });
+    }
+    next();
+});
 
 app.listen(PORT, async () => {
     await initDb();

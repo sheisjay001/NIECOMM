@@ -386,7 +386,9 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Image</label>
-                            <input type="file" id="p-image" class="form-control" accept="image/*">
+                            <input type="file" id="p-image" class="form-control" accept="image/jpeg, image/png, image/gif, image/webp">
+                            <div class="form-text">Supported formats: JPG, PNG, GIF, WEBP. Max size: 5MB.</div>
+                            <img id="p-image-preview" class="img-thumbnail mt-2 d-none" style="max-height: 150px;">
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Add Product</button>
                     </form>
@@ -424,7 +426,9 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Change Image (Optional)</label>
-                            <input type="file" id="edit-p-image" class="form-control" accept="image/*">
+                            <input type="file" id="edit-p-image" class="form-control" accept="image/jpeg, image/png, image/gif, image/webp">
+                            <div class="form-text">Supported formats: JPG, PNG, GIF, WEBP. Max size: 5MB.</div>
+                            <img id="edit-p-image-preview" class="img-thumbnail mt-2 d-none" style="max-height: 150px;">
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Save Changes</button>
                     </form>
@@ -656,7 +660,47 @@
     }
 }
 
+        function setupImagePreview(inputId, previewId) {
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+            
+            if (!input || !preview) return;
+
+            input.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    // Check size (5MB limit)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('File is too large. Maximum size is 5MB.');
+                        this.value = ''; // Clear input
+                        preview.classList.add('d-none');
+                        return;
+                    }
+                    // Check type
+                    if (!file.type.startsWith('image/')) {
+                        alert('Please select a valid image file (JPG, PNG, GIF, WEBP).');
+                        this.value = ''; // Clear input
+                        preview.classList.add('d-none');
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.classList.remove('d-none');
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.classList.add('d-none');
+                }
+            });
+        }
+
         function setupForms() {
+            // Setup Image Previews
+            setupImagePreview('p-image', 'p-image-preview');
+            setupImagePreview('edit-p-image', 'edit-p-image-preview');
+
             // Add Product
             document.getElementById('add-product-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -713,17 +757,23 @@
 
                 try {
                     const res = await fetch(`/api/vendor/products/${id}`, { method: 'PUT', body: formData });
-                    const data = await res.json();
-                    if (res.ok) {
-                        alert(data.message || 'Product updated successfully');
-                        bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
-                        loadProducts();
-                    } else {
-                        alert(data.error || 'Failed to update product');
+                    const text = await res.text();
+                    try {
+                        const data = JSON.parse(text);
+                        if (res.ok) {
+                            alert(data.message || 'Product updated successfully');
+                            bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
+                            loadProducts();
+                        } else {
+                            alert(data.error || 'Failed to update product: ' + text);
+                        }
+                    } catch (e) {
+                        console.error('JSON Parse Error:', text);
+                        alert('Server returned invalid response: ' + text.substring(0, 100));
                     }
                 } catch (err) {
                     console.error(err);
-                    alert('Error updating product');
+                    alert('Error updating product: ' + err.message);
                 }
             });
 
@@ -745,11 +795,32 @@
                         alert(data.message);
                         bootstrap.Modal.getInstance(document.getElementById('withdrawModal')).hide();
                         loadWallet();
+                        loadDashboardStats();
                     } else {
-                        alert(data.error);
+                        alert(data.error || 'Withdrawal failed');
                     }
                 } catch (err) {
-                    alert('Withdrawal failed');
+                    console.error(err);
+                    alert('Error processing withdrawal');
+                }
+            });
+
+            // Clear forms on modal close
+            document.getElementById('addProductModal').addEventListener('hidden.bs.modal', function () {
+                document.getElementById('add-product-form').reset();
+                const preview = document.getElementById('p-image-preview');
+                if (preview) {
+                    preview.classList.add('d-none');
+                    preview.src = '';
+                }
+            });
+
+            document.getElementById('editProductModal').addEventListener('hidden.bs.modal', function () {
+                document.getElementById('edit-product-form').reset();
+                const preview = document.getElementById('edit-p-image-preview');
+                if (preview) {
+                    preview.classList.add('d-none');
+                    preview.src = '';
                 }
             });
 
