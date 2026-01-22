@@ -1128,18 +1128,57 @@ app.get('/api/vendor/orders', async (req, res) => {
     try {
         const conn = await getDb();
         // Join orders and order_items to find orders containing vendor's products
-        // Distinct orders because one order might have multiple products from same vendor
+        // Group by order to aggregate items for this vendor
         const [rows] = await conn.execute(`
-            SELECT DISTINCT o.order_number, o.total_amount, o.status, o.payment_status, o.created_at 
+            SELECT o.id, o.order_number, o.status, o.payment_status, o.created_at,
+                   GROUP_CONCAT(CONCAT(oi.quantity, 'x ', p.name) SEPARATOR ', ') as items_summary,
+                   SUM(oi.price * oi.quantity) as vendor_total
             FROM orders o
             JOIN order_items oi ON o.id = oi.order_id
             JOIN products p ON oi.product_id = p.id
             WHERE p.vendor_id = ?
+            GROUP BY o.id
             ORDER BY o.created_at DESC
         `, [userId]);
         
         await conn.end();
         res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get Vendor Profile
+app.get('/api/vendor/profile', async (req, res) => {
+    const userId = req.query.user_id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute('SELECT username, email, phone, shop_address, cac_number, state_id, city_id, lga_id FROM users WHERE id = ?', [userId]);
+        await conn.end();
+        if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        res.json(rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Update Vendor Profile
+app.put('/api/vendor/profile', async (req, res) => {
+    const { user_id, username, phone, shop_address, cac_number } = req.body;
+    if (!user_id) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const conn = await getDb();
+        await conn.execute(
+            'UPDATE users SET username = ?, phone = ?, shop_address = ?, cac_number = ? WHERE id = ?',
+            [username, phone, shop_address, cac_number, user_id]
+        );
+        await conn.end();
+        res.json({ message: 'Profile updated successfully' });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
