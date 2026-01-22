@@ -965,6 +965,24 @@ app.post('/api/admin/verifications/:id', async (req, res) => {
     }
 });
 
+// Admin: Get All Orders
+app.get('/api/admin/orders', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(`
+            SELECT o.*, u.username as customer_name 
+            FROM orders o 
+            LEFT JOIN users u ON o.customer_id = u.id 
+            ORDER BY o.created_at DESC
+        `);
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Admin: Update Order Payment Status
 app.post('/api/admin/orders/:id/payment', async (req, res) => {
     const { status } = req.body;
