@@ -3,105 +3,267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Dashboard - NIECOMM</title>
+    <title>My Dashboard - NIECOMM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .sidebar-link { cursor: pointer; transition: all 0.2s; }
+        .sidebar-link.active { background-color: #0d6efd; color: white !important; }
+        .sidebar-link:hover:not(.active) { background-color: #e9ecef; }
+        .section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    </style>
 </head>
-<body data-theme="light">
-    <!-- Nav Placeholder -->
-    <div id="nav-placeholder"></div>
+<body class="bg-light">
 
-    <div class="container py-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0">My Dashboard</h2>
-            <a href="products.html" class="btn btn-outline-primary">Browse Products</a>
-        </div>
-        
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
-                                <i class="fas fa-user-circle fa-lg text-primary"></i>
-                            </div>
-                            <h5 class="card-title mb-0">Account</h5>
-                        </div>
-                        <p class="mb-1"><strong id="user-name">Loading...</strong></p>
-                        <p class="text-muted mb-2" id="user-email">...</p>
-                        <a href="#" onclick="openProfileModal()" class="btn btn-outline-primary btn-sm mt-2">Edit Profile</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
-                                <i class="fas fa-shopping-bag fa-lg text-primary"></i>
-                            </div>
-                            <h5 class="card-title mb-0">Orders</h5>
-                        </div>
-                        <p class="display-6 mb-1" id="order-count">0</p>
-                        <p class="text-muted">Total orders placed</p>
-                        <a href="orders.html" class="btn btn-outline-primary btn-sm">View Orders</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
-                                <i class="fas fa-shield-alt fa-lg text-primary"></i>
-                            </div>
-                            <h5 class="card-title mb-0">Escrow Status</h5>
-                        </div>
-                        <p class="text-muted small">Funds are held for 3 days to allow returns, then released after delivery confirmation.</p>
-                        <a href="products.html" class="btn btn-primary btn-sm">Make a Purchase</a>
-                    </div>
-                </div>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="index.html">NIECOMM</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="products.html">Shop</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Logout</a></li>
+                </ul>
             </div>
         </div>
+    </nav>
 
-        <div class="mt-5">
-            <h4 class="mb-3">Recent Orders</h4>
-            <div class="table-responsive">
-                <table class="table" id="recent-orders-table">
-                    <thead>
-                        <tr>
-                            <th>Order Number</th>
-                            <th>Total</th>
-                            <th>Status</th>
-                            <th>Payment</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="recent-orders-body">
-                        <tr><td colspan="6" class="text-center">Loading...</td></tr>
-                    </tbody>
-                </table>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 d-none d-md-block bg-white sidebar shadow-sm rounded p-3 me-3" style="min-height: 80vh;">
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                        <span id="sidebar-initials" class="fw-bold">U</span>
+                    </div>
+                    <div style="overflow: hidden;">
+                        <h6 class="mb-0 fw-bold text-truncate" id="sidebar-username">User</h6>
+                        <small class="text-muted">Buyer Account</small>
+                    </div>
+                </div>
+                <ul class="nav flex-column gap-2">
+                    <li class="nav-item">
+                        <a onclick="showSection('dashboard')" class="nav-link sidebar-link active text-dark rounded text-start mb-2" id="nav-dashboard">
+                            <i class="fas fa-home me-2"></i> Overview
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a onclick="showSection('orders')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-orders">
+                            <i class="fas fa-shopping-bag me-2"></i> My Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a onclick="showSection('settings')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-settings">
+                            <i class="fas fa-user-cog me-2"></i> Profile Settings
+                        </a>
+                    </li>
+                    <li class="nav-item mt-4">
+                        <a href="#" onclick="logout()" class="nav-link text-danger hover-bg-light rounded">
+                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                        </a>
+                    </li>
+                </ul>
             </div>
-        </div>
-        <div class="mt-5">
-            <h4 class="mb-3">Recent Returns</h4>
-            <div class="table-responsive">
-                <table class="table" id="recent-returns-table">
-                    <thead>
-                        <tr>
-                            <th>Order</th>
-                            <th>Product</th>
-                            <th>Reason</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody id="recent-returns-body">
-                        <tr><td colspan="5" class="text-center">Loading...</td></tr>
-                    </tbody>
-                </table>
+
+            <!-- Mobile Sidebar Toggle (Visible on small screens) -->
+            <div class="col-12 d-md-none mb-3">
+                <div class="bg-white p-3 rounded shadow-sm d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">Menu</span>
+                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#mobileMenu">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+                <div class="collapse mt-2" id="mobileMenu">
+                    <div class="bg-white p-3 rounded shadow-sm">
+                        <ul class="nav flex-column gap-2">
+                            <li class="nav-item"><a onclick="showSection('dashboard')" class="nav-link text-dark"><i class="fas fa-home me-2"></i> Overview</a></li>
+                            <li class="nav-item"><a onclick="showSection('orders')" class="nav-link text-dark"><i class="fas fa-shopping-bag me-2"></i> My Orders</a></li>
+                            <li class="nav-item"><a onclick="showSection('settings')" class="nav-link text-dark"><i class="fas fa-user-cog me-2"></i> Profile Settings</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-9">
+                
+                <!-- SECTION: DASHBOARD -->
+                <div id="section-dashboard" class="section active">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="fw-bold mb-0">My Dashboard</h2>
+                            <p class="text-muted">Welcome back, <span id="welcome-name">User</span>!</p>
+                        </div>
+                        <a href="products.html" class="btn btn-primary rounded-pill px-4">
+                            <i class="fas fa-cart-plus me-2"></i> Shop Now
+                        </a>
+                    </div>
+
+                    <!-- Stats Row -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="card-icon bg-primary bg-opacity-10 text-primary me-3">
+                                        <i class="fas fa-shopping-bag fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="fw-bold mb-0" id="stat-total-orders">0</h3>
+                                        <p class="text-muted small mb-0">Total Orders</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="card-icon bg-warning bg-opacity-10 text-warning me-3">
+                                        <i class="fas fa-truck fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="fw-bold mb-0" id="stat-pending">0</h3>
+                                        <p class="text-muted small mb-0">In Progress</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm h-100 border-start border-4 border-info">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-shield-alt text-info me-2"></i>
+                                        <h6 class="fw-bold mb-0">Escrow Protection</h6>
+                                    </div>
+                                    <p class="small text-muted mb-0">
+                                        Your funds are held securely. They are only released to the vendor after you confirm satisfaction or 3 days after delivery.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Orders Preview -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">Recent Orders</h5>
+                            <a onclick="showSection('orders')" class="btn btn-sm btn-outline-primary rounded-pill">View All</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th class="ps-4">Order #</th>
+                                            <th>Date</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-orders-body">
+                                        <tr><td colspan="5" class="text-center py-4 text-muted">Loading...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: ORDERS -->
+                <div id="section-orders" class="section">
+                    <h2 class="fw-bold mb-4">My Orders</h2>
+                    
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th class="ps-4">Order #</th>
+                                            <th>Date</th>
+                                            <th>Items</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th>Escrow</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="all-orders-body">
+                                        <tr><td colspan="7" class="text-center py-5 text-muted">Loading orders...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: SETTINGS -->
+                <div id="section-settings" class="section">
+                    <h2 class="fw-bold mb-4">Profile Settings</h2>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body p-4">
+                                    <h5 class="fw-bold mb-4">Personal Information</h5>
+                                    <form id="profile-form">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Username</label>
+                                                <input type="text" id="edit-username" class="form-control bg-light" readonly>
+                                                <div class="form-text">Username cannot be changed.</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Phone Number</label>
+                                                <input type="tel" id="edit-phone" class="form-control">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label">Delivery Address</label>
+                                                <textarea id="edit-address" class="form-control" rows="2"></textarea>
+                                            </div>
+                                            
+                                            <div class="col-12 mt-4">
+                                                <h6 class="fw-bold">Location Details</h6>
+                                            </div>
+                                            
+                                            <div class="col-md-4">
+                                                <label class="form-label">State</label>
+                                                <select id="edit-state" class="form-select">
+                                                    <option value="">Select State</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">LGA</label>
+                                                <select id="edit-lga" class="form-select">
+                                                    <option value="">Select LGA</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">City</label>
+                                                <select id="edit-city" class="form-select">
+                                                    <option value="">Select City</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="col-12 mt-4">
+                                                <button type="submit" class="btn btn-primary px-4 rounded-pill">Save Changes</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -110,65 +272,14 @@
     <div class="modal fade" id="trackingModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header border-0">
+                <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold">Order Tracking</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div id="tracking-timeline-content" class="tracking-timeline">
+                    <div id="tracking-timeline-content" class="tracking-timeline mt-2">
                         <!-- Populated dynamically -->
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Profile Modal -->
-    <div class="modal fade" id="profileModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fw-bold">Edit Profile</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <form id="profile-form">
-                        <div class="mb-3">
-                            <label class="form-label">Username</label>
-                            <input type="text" id="edit-username" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Phone Number</label>
-                            <input type="tel" id="edit-phone" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">State</label>
-                            <select id="edit-state" class="form-select">
-                                <option value="">Select State</option>
-                            </select>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">LGA</label>
-                                <select id="edit-lga" class="form-select">
-                                    <option value="">Select LGA</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">City</label>
-                                <select id="edit-city" class="form-select">
-                                    <option value="">Select City</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Address</label>
-                            <textarea id="edit-address" class="form-control" rows="2"></textarea>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Save Changes</button>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>
@@ -177,47 +288,231 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script>
-        // Profile Modal Logic
-        let profileModal;
-        
-        async function openProfileModal() {
-            if (!profileModal) profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
+        // --- Navigation Logic ---
+        function showSection(sectionId) {
+            // Update Sidebar
+            document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+            const navLink = document.getElementById('nav-' + sectionId);
+            if (navLink) navLink.classList.add('active');
+
+            // Update Content
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.getElementById('section-' + sectionId).classList.add('active');
             
+            // Close mobile menu if open
+            const mobileMenu = document.getElementById('mobileMenu');
+            if (mobileMenu && mobileMenu.classList.contains('show')) {
+                const bsCollapse = new bootstrap.Collapse(mobileMenu, {toggle: false});
+                bsCollapse.hide();
+            }
+
+            // Load data if needed
+            if (sectionId === 'orders') loadAllOrders();
+            if (sectionId === 'settings') loadProfile();
+        }
+
+        // --- Data Loading ---
+        async function initDashboard() {
             const user = checkAuth();
             if (!user) return;
 
-            // Load States first if empty
-            const stateSelect = document.getElementById('edit-state');
-            if (stateSelect.children.length <= 1) {
+            // Set User Info
+            document.getElementById('sidebar-username').textContent = user.username;
+            document.getElementById('sidebar-initials').textContent = user.username.charAt(0).toUpperCase();
+            document.getElementById('welcome-name').textContent = user.username;
+
+            // Load Dashboard Data
+            try {
+                const res = await fetch(`/api/user/dashboard?user_id=${user.id}`);
+                const data = await res.json();
+                
+                // Stats
+                document.getElementById('stat-total-orders').textContent = data.orderCount || 0;
+                
+                // Calculate Pending (Processing + Shipped)
+                const pendingCount = data.orders.filter(o => ['processing', 'shipped', 'out_for_delivery'].includes(o.status)).length;
+                document.getElementById('stat-pending').textContent = pendingCount;
+
+                // Recent Orders Table
+                const tbody = document.getElementById('dashboard-orders-body');
+                if (data.orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No recent orders found. <a href="products.html">Start shopping!</a></td></tr>';
+                } else {
+                    const recent = data.orders.slice(0, 5); // Top 5
+                    tbody.innerHTML = recent.map(o => renderOrderRow(o, true)).join('');
+                }
+            } catch (err) {
+                console.error('Error loading dashboard:', err);
+            }
+        }
+
+        async function loadAllOrders() {
+            const user = checkAuth();
+            if (!user) return;
+            
+            const tbody = document.getElementById('all-orders-body');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>';
+
+            try {
+                const res = await fetch(`/api/orders?user_id=${user.id}`); // Using the full list endpoint if available, or fallback
+                // Note: The previous dashboard endpoint returned limited orders. Let's use /api/orders
+                const orders = await res.json();
+
+                if (orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">You haven\'t placed any orders yet.</td></tr>';
+                } else {
+                    tbody.innerHTML = orders.map(o => renderOrderRow(o, false)).join('');
+                }
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Failed to load orders.</td></tr>';
+            }
+        }
+
+        function renderOrderRow(o, isCompact) {
+            let statusBadge = '';
+            if (o.status === 'processing') statusBadge = '<span class="badge bg-secondary">Processing</span>';
+            else if (o.status === 'shipped') statusBadge = '<span class="badge bg-info text-dark">Shipped</span>';
+            else if (o.status === 'out_for_delivery') statusBadge = '<span class="badge bg-warning text-dark">Out for Delivery</span>';
+            else if (o.status === 'delivered') statusBadge = '<span class="badge bg-success">Delivered</span>';
+            else statusBadge = `<span class="badge bg-light text-dark border">${o.status}</span>`;
+
+            let escrowBadge = '';
+            if (o.payment_status === 'held') escrowBadge = '<span class="badge bg-warning text-dark"><i class="fas fa-lock me-1"></i> Held in Escrow</span>';
+            else if (o.payment_status === 'paid') escrowBadge = '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Released</span>';
+            else escrowBadge = `<span class="badge bg-secondary">${o.payment_status}</span>`;
+
+            // Action Buttons
+            let actions = '';
+            
+            // Track Button
+            actions += `<button onclick="showTracking('${o.order_number}', '${o.status}', '${o.created_at}')" class="btn btn-sm btn-outline-primary rounded-pill me-1"><i class="fas fa-map-marker-alt"></i></button>`;
+
+            // Confirm Buttons
+            if (o.status === 'shipped' || o.status === 'out_for_delivery') {
+                 actions += `<button onclick="confirmOrder(${o.id}, 'receipt')" class="btn btn-sm btn-success rounded-pill" title="Confirm Receipt"><i class="fas fa-box-open me-1"></i> Received?</button>`;
+            } else if (o.status === 'delivered' && o.payout_status !== 'completed') {
+                 actions += `<button onclick="confirmOrder(${o.id}, 'satisfaction')" class="btn btn-sm btn-success rounded-pill" title="Release Funds"><i class="fas fa-hand-holding-usd me-1"></i> Satisfied?</button>`;
+            }
+
+            if (isCompact) {
+                return `
+                    <tr>
+                        <td class="ps-4 fw-bold">#${o.order_number}</td>
+                        <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                        <td>₦${Number(o.total_amount).toLocaleString()}</td>
+                        <td>${statusBadge}</td>
+                        <td>${actions}</td>
+                    </tr>
+                `;
+            } else {
+                return `
+                    <tr>
+                        <td class="ps-4 fw-bold">#${o.order_number}</td>
+                        <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                        <td><small class="text-muted">View details</small></td> 
+                        <td>₦${Number(o.total_amount).toLocaleString()}</td>
+                        <td>${statusBadge}</td>
+                        <td>${escrowBadge}</td>
+                        <td>${actions}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        // --- Actions ---
+        window.confirmOrder = async function(orderId, type) {
+            const msg = type === 'receipt' 
+                ? 'Confirm that you have received this order? This will update the status to Delivered.' 
+                : 'Confirm that you are satisfied with the product? This will release funds to the vendor.';
+            
+            if (!confirm(msg)) return;
+
+            try {
+                const res = await fetch(`/api/orders/${orderId}/confirm`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type })
+                });
+
+                if (res.ok) {
+                    alert('Action successful!');
+                    // Reload current section
+                    const activeSection = document.querySelector('.section.active').id.replace('section-', '');
+                    if (activeSection === 'dashboard') initDashboard();
+                    else loadAllOrders();
+                } else {
+                    const data = await res.json();
+                    alert(data.error || 'Failed to confirm order');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error confirming order');
+            }
+        };
+
+        window.showTracking = function(orderId, status, date) {
+            const modal = new bootstrap.Modal(document.getElementById('trackingModal'));
+            const timeline = document.getElementById('tracking-timeline-content');
+            
+            const steps = [
+                { status: 'processing', label: 'Processing', desc: 'Order placed & confirmed' },
+                { status: 'shipped', label: 'Shipped', desc: 'Handed over to carrier' },
+                { status: 'out_for_delivery', label: 'Out for Delivery', desc: 'Arriving soon' },
+                { status: 'delivered', label: 'Delivered', desc: 'Package delivered' }
+            ];
+
+            let currentIndex = 0;
+            if (status === 'shipped') currentIndex = 1;
+            if (status === 'out_for_delivery') currentIndex = 2;
+            if (status === 'delivered') currentIndex = 3;
+
+            timeline.innerHTML = steps.map((step, index) => {
+                let activeClass = '';
+                if (index < currentIndex) activeClass = 'completed';
+                else if (index === currentIndex) activeClass = 'active';
+                
+                return `
+                    <div class="timeline-item ${activeClass}">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h6>${step.label}</h6>
+                            <small class="text-muted">${step.desc}</small>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            modal.show();
+        };
+
+        // --- Profile Logic ---
+        let statesLoaded = false;
+        async function loadProfile() {
+            const user = checkAuth();
+            if (!user) return;
+            
+            // Load States if not already
+            if (!statesLoaded) {
                 await loadStates();
+                statesLoaded = true;
             }
 
             try {
-                // Fetch current profile
                 const res = await fetch(`/api/user/profile?user_id=${user.id}`);
-                if (!res.ok) throw new Error('Failed to fetch profile');
                 const profile = await res.json();
 
-                // Fill form
                 document.getElementById('edit-username').value = profile.username || '';
                 document.getElementById('edit-phone').value = profile.phone || '';
-                document.getElementById('edit-address').value = profile.shop_address || ''; // Using shop_address as generic address
+                document.getElementById('edit-address').value = profile.shop_address || ''; 
 
-                // Set State and trigger change to load sub-locations
                 if (profile.state_id) {
-                    stateSelect.value = profile.state_id;
+                    document.getElementById('edit-state').value = profile.state_id;
                     await loadLocations(profile.state_id);
-                    
-                    // Set City and LGA after options are loaded
                     if (profile.city_id) document.getElementById('edit-city').value = profile.city_id;
                     if (profile.lga_id) document.getElementById('edit-lga').value = profile.lga_id;
                 }
-
-                profileModal.show();
-            } catch (err) {
-                console.error(err);
-                alert('Error loading profile');
-            }
+            } catch (err) { console.error(err); }
         }
 
         async function loadStates() {
@@ -226,50 +521,36 @@
                 const states = await res.json();
                 const select = document.getElementById('edit-state');
                 select.innerHTML = '<option value="">Select State</option>';
-                states.forEach(s => {
-                    select.innerHTML += `<option value="${s.id}">${s.name}</option>`;
-                });
-
+                states.forEach(s => select.innerHTML += `<option value="${s.id}">${s.name}</option>`);
                 select.addEventListener('change', (e) => loadLocations(e.target.value));
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         async function loadLocations(stateId) {
             if (!stateId) return;
-            
             const lgaSelect = document.getElementById('edit-lga');
             const citySelect = document.getElementById('edit-city');
-            
-            lgaSelect.innerHTML = '<option value="">Loading...</option>';
-            citySelect.innerHTML = '<option value="">Loading...</option>';
+            lgaSelect.innerHTML = '<option>Loading...</option>';
+            citySelect.innerHTML = '<option>Loading...</option>';
 
             try {
                 const [lgaRes, cityRes] = await Promise.all([
                     fetch(`/api/states/${stateId}/lgas`),
                     fetch(`/api/states/${stateId}/cities`)
                 ]);
-
                 const lgas = await lgaRes.json();
                 const cities = await cityRes.json();
 
                 lgaSelect.innerHTML = '<option value="">Select LGA</option>';
                 lgas.forEach(l => lgaSelect.innerHTML += `<option value="${l.id}">${l.name}</option>`);
-
                 citySelect.innerHTML = '<option value="">Select City</option>';
                 cities.forEach(c => citySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`);
-
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         document.getElementById('profile-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const user = checkAuth();
-            if (!user) return;
-
             const btn = e.target.querySelector('button[type="submit"]');
             const originalText = btn.innerText;
             btn.disabled = true;
@@ -291,15 +572,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-                
-                if (res.ok) {
-                    alert('Profile updated successfully!');
-                    profileModal.hide();
-                    window.location.reload(); // Refresh to show new data
-                } else {
-                    const err = await res.json();
-                    alert(err.error || 'Failed to update profile');
-                }
+                if (res.ok) alert('Profile updated successfully!');
+                else alert('Failed to update profile');
             } catch (err) {
                 console.error(err);
                 alert('Error saving profile');
@@ -309,159 +583,9 @@
             }
         });
 
-        // Expose confirmOrder globally
-        window.confirmOrder = async function(orderId, type) {
-            const msg = type === 'receipt' 
-                ? 'Confirm that you have received this order? This will update the status to Delivered.' 
-                : 'Confirm that you are satisfied with the product? This will release funds to the vendor.';
-            
-            if (!confirm(msg)) return;
-
-            try {
-                const res = await fetch(`/api/orders/${orderId}/confirm`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type })
-                });
-
-                if (res.ok) {
-                    alert('Order confirmed successfully!');
-                    window.location.reload();
-                } else {
-                    const data = await res.json();
-                    alert(data.error || 'Failed to confirm order');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Error confirming order');
-            }
-        };
-
-        // Expose showTracking globally
-        window.showTracking = function(orderId, status, date) {
-            const modal = new bootstrap.Modal(document.getElementById('trackingModal'));
-            const timeline = document.getElementById('tracking-timeline-content');
-            
-            // Define steps
-            const steps = [
-                { status: 'processing', label: 'Order Processing', desc: 'Your order is being prepared.' },
-                { status: 'shipped', label: 'Shipped', desc: 'Your order has left the warehouse.' },
-                { status: 'out_for_delivery', label: 'Out for Delivery', desc: 'Driver is on the way.' },
-                { status: 'delivered', label: 'Delivered', desc: 'Package delivered successfully.' }
-            ];
-
-            // Determine current step index
-            let currentIndex = 0;
-            // Map status to index. Default 'pending' is 0.
-            if (status === 'shipped') currentIndex = 1;
-            if (status === 'out_for_delivery') currentIndex = 2;
-            if (status === 'delivered') currentIndex = 3;
-
-            timeline.innerHTML = steps.map((step, index) => {
-                let activeClass = '';
-                if (index < currentIndex) activeClass = 'completed';
-                else if (index === currentIndex) activeClass = 'active';
-                
-                return `
-                    <div class="timeline-item ${activeClass}">
-                        <div class="timeline-marker"></div>
-                        <div class="timeline-content">
-                            <h6>${step.label}</h6>
-                            <small>${step.desc}</small>
-                            ${index === currentIndex ? `<br><small class="text-primary fw-bold mt-1 d-block">Updated: ${new Date().toLocaleDateString()}</small>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            modal.show();
-        };
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            loadNav(); // Ensure nav is loaded
-            const user = checkAuth(); // Ensures user is logged in
-            if (!user) return;
-
-            // Populate User Info (Replace Skeletons)
-            document.getElementById('user-info-container').innerHTML = `
-                <p class="mb-1"><strong id="user-name">${user.username}</strong></p>
-                <p class="text-muted mb-2" id="user-email">${user.email}</p>
-            `;
-
-            try {
-                // Add artificial delay to show off skeletons (optional, but good for demo)
-                // await new Promise(r => setTimeout(r, 1000));
-
-                const res = await fetch(`/api/user/dashboard?user_id=${user.id}`);
-                const data = await res.json();
-                
-                document.getElementById('order-count-container').innerHTML = `<p class="display-6 mb-1">${data.orderCount}</p>`;
-                
-                const tbody = document.getElementById('recent-orders-body');
-                if (data.orders.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No recent orders found.</td></tr>';
-                } else {
-                    tbody.innerHTML = data.orders.map(o => {
-                        let actionBtn = '';
-                        if (o.status === 'shipped') {
-                            actionBtn = `<button onclick="confirmOrder(${o.id}, 'receipt')" class="btn btn-sm btn-success rounded-pill ms-2" style="font-size: 0.75rem;">Confirm Receipt</button>`;
-                        } else if (o.status === 'delivered' && o.payout_status !== 'completed') {
-                            actionBtn = `<button onclick="confirmOrder(${o.id}, 'satisfaction')" class="btn btn-sm btn-success rounded-pill ms-2" style="font-size: 0.75rem;">Confirm Satisfaction</button>`;
-                        }
-
-                        return `
-                        <tr>
-                            <td class="ps-3 fw-bold">#${o.order_number}</td>
-                            <td>₦${Number(o.total_amount).toLocaleString()}</td>
-                            <td>
-                                <span class="badge rounded-pill ${o.status === 'delivered' ? 'bg-success' : 'bg-warning text-dark'}">
-                                    ${o.status}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="badge rounded-pill ${o.payment_status === 'paid' ? 'bg-success' : (o.payment_status === 'held' ? 'bg-info text-dark' : 'bg-secondary')}">
-                                    ${o.payment_status}
-                                </span>
-                            </td>
-                            <td>${new Date(o.created_at).toLocaleDateString()}</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary rounded-pill" 
-                                    onclick="showTracking('${o.order_number}', '${o.status}', '${o.created_at}')">
-                                    Track
-                                </button>
-                                ${actionBtn}
-                            </td>
-                        </tr>
-                    `}).join('');
-                }
-
-                // Fetch Returns
-                const returnsRes = await fetch(`/api/user/returns?user_id=${user.id}`);
-                const returnsData = await returnsRes.json();
-                const returnsBody = document.getElementById('recent-returns-body');
-                
-                if (returnsData.length === 0) {
-                    returnsBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No returns requested.</td></tr>';
-                } else {
-                    returnsBody.innerHTML = returnsData.map(r => `
-                        <tr>
-                            <td class="ps-3">#${r.order_number}</td>
-                            <td><div class="fw-bold">${r.product_name}</div></td>
-                            <td>${r.reason}</td>
-                            <td>
-                                <span class="badge rounded-pill ${r.status === 'approved' ? 'bg-success' : 'bg-secondary'}">
-                                    ${r.status}
-                                </span>
-                            </td>
-                            <td>${new Date(r.created_at).toLocaleDateString()}</td>
-                        </tr>
-                    `).join('');
-                }
-
-            } catch (err) {
-                console.error(err);
-                // Handle error state if needed
-            }
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initDashboard();
         });
     </script>
 </body>
