@@ -1000,6 +1000,51 @@ app.post('/api/admin/orders/:id/payment', async (req, res) => {
     }
 });
 
+// Admin: Manual Payout Release (Override Escrow)
+app.post('/api/admin/orders/:id/release', async (req, res) => {
+    try {
+        const conn = await getDb();
+        
+        // 1. Get Order Details
+        const [orders] = await conn.execute(`
+            SELECT o.id, o.order_number, o.total_amount, o.payout_status, p.vendor_id
+            FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            WHERE o.id = ?
+            GROUP BY o.id
+        `, [req.params.id]);
+
+        if (orders.length === 0) {
+            await conn.end();
+            return res.status(404).json({ error: 'Order not found' });
+        }
+
+        const order = orders[0];
+
+        if (order.payout_status === 'completed') {
+            await conn.end();
+            return res.status(400).json({ error: 'Payout already completed' });
+        }
+
+        // 2. Credit Vendor Wallet
+        await conn.execute(
+            "INSERT INTO wallet_transactions (user_id, amount, type, description, status, reference) VALUES (?, ?, 'credit', ?, 'completed', ?)",
+            [order.vendor_id, order.total_amount, `Payout for Order #${order.order_number} (Admin Released)`, order.order_number]
+        );
+
+        // 3. Update Order Status
+        await conn.execute("UPDATE orders SET payout_status = 'completed' WHERE id = ?", [req.params.id]);
+
+        await conn.end();
+        res.json({ message: 'Funds released to vendor wallet' });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Admin: Get Pending Withdrawals
 app.get('/api/admin/withdrawals', async (req, res) => {
     try {
