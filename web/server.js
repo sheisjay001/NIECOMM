@@ -322,6 +322,9 @@ async function initDb() {
         try {
             await db.query("ALTER TABLE orders ADD COLUMN payout_status ENUM('pending', 'completed', 'refunded') DEFAULT 'pending'");
         } catch (e) {}
+        try {
+            await db.query("ALTER TABLE orders ADD COLUMN proof_of_payment VARCHAR(255)");
+        } catch (e) {}
 
         // Order Items Table
         await db.query(`CREATE TABLE IF NOT EXISTS order_items (
@@ -1168,13 +1171,23 @@ app.get('/api/states', async (req, res) => {
 
 
 // Place Order
-app.post('/api/orders', async (req, res) => {
-    const { user_id, shipping_address, cart, payment_method } = req.body;
-    if (!user_id || !shipping_address || !cart || cart.length === 0) {
-        return res.status(400).json({ error: 'Invalid order data' });
-    }
-
+app.post('/api/orders', upload.single('proof_of_payment'), async (req, res) => {
     try {
+        let { user_id, shipping_address, cart, payment_method } = req.body;
+        
+        // Parse cart if it's a string (FormData)
+        if (typeof cart === 'string') {
+            try {
+                cart = JSON.parse(cart);
+            } catch (e) {
+                return res.status(400).json({ error: 'Invalid cart data' });
+            }
+        }
+
+        if (!user_id || !shipping_address || !cart || cart.length === 0) {
+            return res.status(400).json({ error: 'Invalid order data' });
+        }
+
         const conn = await getDb();
         
         // Calculate Total & Validate Items
@@ -1202,12 +1215,13 @@ app.post('/api/orders', async (req, res) => {
         }
 
         const orderNumber = 'NGM-' + Date.now();
+        const proofPath = req.file ? '/uploads/' + req.file.filename : null;
         
         // Create Order
         // Status is 'processing', Payment is 'held' (Escrow)
         const [orderResult] = await conn.execute(
-            "INSERT INTO orders (order_number, customer_id, total_amount, shipping_address, status, payment_status, payment_method, created_at) VALUES (?, ?, ?, ?, 'processing', 'held', ?, NOW())",
-            [orderNumber, user_id, total, shipping_address, payment_method || 'card']
+            "INSERT INTO orders (order_number, customer_id, total_amount, shipping_address, status, payment_status, payment_method, proof_of_payment, created_at) VALUES (?, ?, ?, ?, 'processing', 'held', ?, ?, NOW())",
+            [orderNumber, user_id, total, shipping_address, payment_method || 'card', proofPath]
         );
         
         const orderId = orderResult.insertId;

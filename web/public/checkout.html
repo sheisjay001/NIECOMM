@@ -319,29 +319,49 @@
             const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
             const alertBox = document.getElementById('alert-box');
 
+            // Prepare FormData
+            const formData = new FormData();
+            formData.append('user_id', user.id);
+            formData.append('shipping_address', address);
+            formData.append('cart', JSON.stringify(cart));
+            formData.append('payment_method', paymentMethod);
+
+            // Append proof of payment if exists and method is transfer
+            if (paymentMethod === 'transfer') {
+                const fileInput = document.getElementById('proof-upload');
+                if (fileInput && fileInput.files.length > 0) {
+                    formData.append('proof_of_payment', fileInput.files[0]);
+                }
+            }
+
             try {
                 const res = await fetch('/api/orders', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: user.id,
-                        shipping_address: address,
-                        cart: cart,
-                        payment_method: paymentMethod
-                    })
+                    body: formData
                 });
                 
                 const data = await res.json();
                 
                 if (res.ok) {
-                    // Close modal
-                    const modalEl = document.getElementById('paymentModal');
-                    const modal = bootstrap.Modal.getInstance(modalEl);
-                    modal.hide();
+                    // Close any open modals
+                    const paymentModalEl = document.getElementById('paymentModal');
+                    if (paymentModalEl) {
+                        const paymentModal = bootstrap.Modal.getInstance(paymentModalEl);
+                        if (paymentModal) paymentModal.hide();
+                    }
+                    
+                    const transferModalEl = document.getElementById('bankTransferModal');
+                    if (transferModalEl) {
+                        const transferModal = bootstrap.Modal.getInstance(transferModalEl);
+                        if (transferModal) transferModal.hide();
+                    }
 
                     localStorage.removeItem('cart');
                     updateCartCount();
-                    window.location.href = 'orders.html';
+                    
+                    // Success Message
+                    alert('Order placed successfully! Redirecting to dashboard...');
+                    window.location.href = 'user_dashboard.html';
                 } else {
                     alertBox.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to place order'}</div>`;
                 }
