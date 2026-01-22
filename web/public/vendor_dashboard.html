@@ -674,13 +674,14 @@
 
                 try {
                     const res = await fetch('/api/vendor/products', { method: 'POST', body: formData });
+                    const data = await res.json();
                     if (res.ok) {
-                        alert('Product added successfully');
+                        alert(data.message || 'Product added successfully');
                         bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
                         loadProducts();
                         loadDashboardStats(); // update count
                     } else {
-                        alert('Failed to add product');
+                        alert(data.error || 'Failed to add product');
                     }
                 } catch (err) {
                     console.error(err);
@@ -706,12 +707,13 @@
 
                 try {
                     const res = await fetch(`/api/vendor/products/${id}`, { method: 'PUT', body: formData });
+                    const data = await res.json();
                     if (res.ok) {
-                        alert('Product updated successfully');
+                        alert(data.message || 'Product updated successfully');
                         bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
                         loadProducts();
                     } else {
-                        alert('Failed to update product');
+                        alert(data.error || 'Failed to update product');
                     }
                 } catch (err) {
                     console.error(err);

@@ -68,12 +68,13 @@ const upload = multer({ storage: storage });
 
 // Database Connection
 const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST || '127.0.0.1',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'nigeriagadgetmart',
     port: process.env.DB_PORT || 3306,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
+    connectTimeout: 10000 // 10s timeout
 };
 
 async function initDb() {
@@ -83,20 +84,26 @@ async function initDb() {
             const checkConn = await getDb();
             await checkConn.end();
         } catch (err) {
-            // Check for SSL handshake error (common in local XAMPP)
-            if (err.code === 'HANDSHAKE_NO_SSL_SUPPORT') {
-                console.log('Database server does not support SSL. Disabling SSL configuration...');
+            console.log('Initial DB connection failed:', err.message);
+            // Check for SSL handshake error or timeout (common in local XAMPP)
+            if (err.code === 'HANDSHAKE_NO_SSL_SUPPORT' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' || err.code === 'ER_CONN_REFUSED') {
+                console.log('Retrying without SSL and forcing 127.0.0.1...');
                 delete dbConfig.ssl;
+                dbConfig.host = '127.0.0.1'; // Force IPv4
                 // Retry connection check
                 try {
                     const retryConn = await getDb();
                     await retryConn.end();
+                    console.log('Connection successful after retry.');
                     return; // Connection successful, no need to create DB
                 } catch (retryErr) {
                     // If it fails again (e.g. DB doesn't exist), proceed to creation
                     console.log('Connection retry failed, proceeding to database creation check...', retryErr.message);
                 }
+            } else {
+                throw err;
             }
+        }
 
             // If connection fails, try creating the database (for local dev)
             console.log('Database connection failed, attempting to create database...', err.message);
