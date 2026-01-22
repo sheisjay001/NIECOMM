@@ -72,7 +72,8 @@ const dbConfig = {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'nigeriagadgetmart',
-    port: process.env.DB_PORT || 3306
+    port: process.env.DB_PORT || 3306,
+    ssl: { rejectUnauthorized: false }
 };
 
 async function initDb() {
@@ -82,6 +83,21 @@ async function initDb() {
             const checkConn = await getDb();
             await checkConn.end();
         } catch (err) {
+            // Check for SSL handshake error (common in local XAMPP)
+            if (err.code === 'HANDSHAKE_NO_SSL_SUPPORT') {
+                console.log('Database server does not support SSL. Disabling SSL configuration...');
+                delete dbConfig.ssl;
+                // Retry connection check
+                try {
+                    const retryConn = await getDb();
+                    await retryConn.end();
+                    return; // Connection successful, no need to create DB
+                } catch (retryErr) {
+                    // If it fails again (e.g. DB doesn't exist), proceed to creation
+                    console.log('Connection retry failed, proceeding to database creation check...', retryErr.message);
+                }
+            }
+
             // If connection fails, try creating the database (for local dev)
             console.log('Database connection failed, attempting to create database...', err.message);
             const conn = await mysql.createConnection({
