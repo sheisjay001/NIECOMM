@@ -649,13 +649,16 @@
                     document.getElementById('profile-phone').value = data.phone || '';
                     document.getElementById('profile-address').value = data.shop_address || '';
                     document.getElementById('profile-cac').value = data.cac_number || '';
-                    
-                    // Also populate bank details if they were stored (not implemented in profile fetch yet, but placeholders exist)
-                }
-            } catch (err) {
-                console.error(err);
-            }
+            
+            // Populate bank details
+            document.getElementById('bank-name').value = data.bank_name || '';
+            document.getElementById('account-number').value = data.account_number || '';
+            document.getElementById('account-name').value = data.account_name || '';
         }
+    } catch (err) {
+        console.error(err);
+    }
+}
 
         function setupForms() {
             // Add Product
