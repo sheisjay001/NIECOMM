@@ -218,6 +218,20 @@ async function initDb() {
         try {
             await db.query("ALTER TABLE users ADD COLUMN phone VARCHAR(20)");
         } catch (e) {}
+
+        // Seed Default Admin
+        const [adminUser] = await db.query("SELECT id FROM users WHERE email = 'admin@niecomm.com'");
+        if (adminUser.length === 0) {
+            const hashedPassword = await bcrypt.hash('password123', 10);
+            const [adminRole] = await db.query("SELECT id FROM roles WHERE name = 'admin'");
+            if (adminRole.length > 0) {
+                await db.query(
+                    "INSERT INTO users (username, email, password, role_id, is_verified) VALUES (?, ?, ?, ?, 1)",
+                    ['Admin', 'admin@niecomm.com', hashedPassword, adminRole[0].id]
+                );
+                console.log('Default Admin created: admin@niecomm.com / password123');
+            }
+        }
         
         // Vendor Verifications Table
         await db.query(`CREATE TABLE IF NOT EXISTS vendor_verifications (
@@ -1525,6 +1539,103 @@ app.post('/api/admin/process-escrow', async (req, res) => {
 
         await conn.end();
         res.json({ message: 'Escrow processing complete', processed: processedCount });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Get Dashboard Stats
+app.get('/api/admin/dashboard-stats', async (req, res) => {
+    try {
+        const conn = await getDb();
+        
+        // Counts
+        const [userCount] = await conn.execute("SELECT COUNT(*) as count FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = 'user'");
+        const [vendorCount] = await conn.execute("SELECT COUNT(*) as count FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = 'vendor'");
+        const [orderCount] = await conn.execute("SELECT COUNT(*) as count FROM orders");
+        
+        // Revenue (Escrowed)
+        const [escrowTotal] = await conn.execute("SELECT SUM(total_amount) as total FROM orders WHERE payment_status = 'held'");
+
+        // Pending Verifications
+        const [pendingVerifications] = await conn.execute("SELECT COUNT(*) as count FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = 'vendor' AND u.is_verified = 0");
+
+        await conn.end();
+        
+        res.json({
+            users: userCount[0].count,
+            vendors: vendorCount[0].count,
+            orders: orderCount[0].count,
+            escrow_held: escrowTotal[0].total || 0,
+            pending_verifications: pendingVerifications[0].count
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Get All Users (with filters)
+app.get('/api/admin/users', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const role = req.query.role; // 'user' or 'vendor'
+        
+        let query = `
+            SELECT u.id, u.username, u.email, u.phone, u.is_verified, u.created_at, r.name as role, u.shop_address, u.cac_number
+            FROM users u 
+            JOIN roles r ON u.role_id = r.id
+        `;
+        
+        const params = [];
+        if (role) {
+            query += " WHERE r.name = ?";
+            params.push(role);
+        }
+        
+        query += " ORDER BY u.created_at DESC";
+
+        const [rows] = await conn.execute(query, params);
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Verify Vendor
+app.put('/api/admin/verify-vendor', async (req, res) => {
+    const { user_id, action } = req.body; // action: 'approve' or 'reject'
+    if (!user_id || !action) return res.status(400).json({ error: 'Missing fields' });
+
+    try {
+        const conn = await getDb();
+        const isVerified = action === 'approve' ? 1 : 0;
+        
+        await conn.execute("UPDATE users SET is_verified = ? WHERE id = ?", [isVerified, user_id]);
+        
+        await conn.end();
+        res.json({ message: `Vendor ${action}d successfully` });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Get All Orders
+app.get('/api/admin/orders', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(`
+            SELECT o.*, u.username as customer_name 
+            FROM orders o
+            JOIN users u ON o.customer_id = u.id
+            ORDER BY o.created_at DESC
+        `);
+        await conn.end();
+        res.json(rows);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });

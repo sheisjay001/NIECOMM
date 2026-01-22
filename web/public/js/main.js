@@ -83,7 +83,10 @@ function checkAuth() {
 
     const user = JSON.parse(userStr);
     if (authButtons) {
-        const dashboardLink = user.role === 'vendor' ? 'vendor_dashboard.html' : 'user_dashboard.html';
+        let dashboardLink = 'user_dashboard.html';
+        if (user.role === 'vendor') dashboardLink = 'vendor_dashboard.html';
+        if (user.role === 'admin') dashboardLink = 'admin_dashboard.html';
+
         authButtons.innerHTML = `
             <div class="dropdown">
                 <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown">

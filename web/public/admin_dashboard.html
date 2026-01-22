@@ -7,6 +7,13 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .sidebar-link { cursor: pointer; }
+        .sidebar-link.active { background-color: #1E2A44; color: white !important; }
+        .sidebar-link:hover:not(.active) { background-color: #f8f9fa; }
+        .section { display: none; }
+        .section.active { display: block; }
+    </style>
 </head>
 <body class="bg-light">
     
@@ -27,18 +34,28 @@
                 </div>
                 <ul class="nav flex-column gap-2">
                     <li class="nav-item">
-                        <a href="admin_dashboard.html" class="nav-link active btn-premium-primary text-white rounded text-start mb-2">
+                        <a onclick="showSection('dashboard')" class="nav-link sidebar-link active text-dark rounded text-start mb-2" id="nav-dashboard">
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" class="nav-link text-dark hover-bg-light rounded mb-2">
+                        <a onclick="showSection('verifications')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-verifications">
+                            <i class="fas fa-user-check me-2"></i> Verifications <span class="badge bg-danger ms-auto" id="nav-badge-verify" style="display:none">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a onclick="showSection('users')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-users">
                             <i class="fas fa-users me-2"></i> Users & Vendors
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" class="nav-link text-dark hover-bg-light rounded mb-2">
+                        <a onclick="showSection('orders')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-orders">
                             <i class="fas fa-shopping-bag me-2"></i> All Orders
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a onclick="showSection('escrow')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-escrow">
+                            <i class="fas fa-wallet me-2"></i> Escrow System
                         </a>
                     </li>
                     <li class="nav-item mt-4">
@@ -51,114 +68,242 @@
 
             <!-- Main Content -->
             <div class="col-md-9 col-lg-9">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 class="fw-bold mb-1">Escrow Management</h2>
-                        <p class="text-muted mb-0">Monitor and release funds held in trust.</p>
-                    </div>
-                </div>
-
-                <!-- Stats Cards -->
-                <div class="row g-4 mb-4">
-                    <div class="col-md-4">
-                        <div class="card-premium h-100 p-4 border-start border-4 border-primary">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div>
-                                    <p class="text-muted small mb-1">Total Held in Escrow</p>
-                                    <h3 class="fw-bold mb-0 text-primary" id="held-total">₦0.00</h3>
-                                    <small class="text-muted">Waiting for delivery/maturity</small>
-                                </div>
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
-                                    <i class="fas fa-lock text-primary fa-lg"></i>
-                                </div>
+                
+                <!-- SECTION: DASHBOARD -->
+                <div id="section-dashboard" class="section active">
+                    <h2 class="fw-bold mb-4">Platform Overview</h2>
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm p-3">
+                                <p class="text-muted small mb-1">Total Users</p>
+                                <h3 class="fw-bold" id="stat-users">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm p-3">
+                                <p class="text-muted small mb-1">Total Vendors</p>
+                                <h3 class="fw-bold" id="stat-vendors">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm p-3">
+                                <p class="text-muted small mb-1">Total Orders</p>
+                                <h3 class="fw-bold" id="stat-orders">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm p-3 border-start border-4 border-primary">
+                                <p class="text-muted small mb-1">Escrow Held</p>
+                                <h3 class="fw-bold text-primary" id="stat-escrow">₦0.00</h3>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card-premium h-100 p-4 border-start border-4 border-warning">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div>
-                                    <p class="text-muted small mb-1">In 3-Day Window</p>
-                                    <h3 class="fw-bold mb-0" id="window-total">₦0.00</h3>
-                                    <small class="text-muted" id="window-count">0 orders delivered recently</small>
-                                </div>
-                                <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
-                                    <i class="fas fa-hourglass-half text-warning fa-lg"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card-premium h-100 p-4 border-start border-4 border-success">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div>
-                                    <p class="text-muted small mb-1">Ready for Payout</p>
-                                    <h3 class="fw-bold mb-0 text-success" id="pending-total">₦0.00</h3>
-                                    <small class="text-muted" id="pending-count">0 orders matured</small>
-                                </div>
-                                <div class="bg-success bg-opacity-10 p-3 rounded-circle">
-                                    <i class="fas fa-check-circle text-success fa-lg"></i>
-                                </div>
-                            </div>
+                    <div class="alert alert-warning d-flex align-items-center" role="alert" id="pending-alert" style="display:none !important">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <div>
+                            You have <strong id="pending-count-alert">0</strong> pending vendor verifications.
+                            <a href="#" onclick="showSection('verifications')" class="alert-link">Review now</a>.
                         </div>
                     </div>
                 </div>
 
-                <!-- Actions Section -->
-                <div class="row g-4">
-                    <div class="col-md-12">
-                        <div class="card-premium p-4">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <div>
-                                    <h5 class="fw-bold mb-1">Escrow Settlement</h5>
-                                    <p class="text-muted small mb-0">Release funds to vendors for orders delivered over 3 days ago with no active returns.</p>
-                                </div>
-                                <button id="process-btn" class="btn btn-primary px-4 py-2 fw-bold shadow-sm">
-                                    <i class="fas fa-sync-alt me-2"></i> Run Settlement Batch
-                                </button>
+                <!-- SECTION: VERIFICATIONS -->
+                <div id="section-verifications" class="section">
+                    <h2 class="fw-bold mb-4">Pending Verifications</h2>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Vendor</th>
+                                            <th>Business Details</th>
+                                            <th>Location</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="verifications-table">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
                             </div>
-                            
-                            <div id="process-result" class="alert alert-info d-none">
-                                <i class="fas fa-info-circle me-2"></i> <span id="process-msg"></span>
+                            <div id="no-verifications" class="text-center py-5 d-none">
+                                <p class="text-muted">No pending verifications.</p>
                             </div>
+                        </div>
+                    </div>
+                </div>
 
-                            <hr>
-                            
-                            <h6 class="fw-bold mb-3">How it works</h6>
-                            <div class="row text-center">
-                                <div class="col-md-4 position-relative">
-                                    <div class="p-3">
-                                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                                            <i class="fas fa-shopping-cart text-primary fa-lg"></i>
-                                        </div>
-                                        <h6 class="fw-bold">1. Buyer Pays</h6>
-                                        <p class="small text-muted">Funds are held securely in the NIECOMM Escrow Account.</p>
+                <!-- SECTION: USERS & VENDORS -->
+                <div id="section-users" class="section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="fw-bold mb-0">Users & Vendors</h2>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary active" onclick="loadUsers('all', this)">All</button>
+                            <button class="btn btn-outline-secondary" onclick="loadUsers('vendor', this)">Vendors</button>
+                            <button class="btn btn-outline-secondary" onclick="loadUsers('user', this)">Buyers</button>
+                        </div>
+                    </div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Role</th>
+                                            <th>Email / Phone</th>
+                                            <th>Status</th>
+                                            <th>Joined</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-table">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: ORDERS -->
+                <div id="section-orders" class="section">
+                    <h2 class="fw-bold mb-4">All Orders</h2>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th>Customer</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Payment</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="orders-table">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: ESCROW (Existing) -->
+                <div id="section-escrow" class="section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="fw-bold mb-1">Escrow Management</h2>
+                            <p class="text-muted mb-0">Monitor and release funds held in trust.</p>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-4">
+                            <div class="card-premium h-100 p-4 border-start border-4 border-primary">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <p class="text-muted small mb-1">Total Held in Escrow</p>
+                                        <h3 class="fw-bold mb-0 text-primary" id="held-total">₦0.00</h3>
+                                        <small class="text-muted">Waiting for delivery/maturity</small>
                                     </div>
-                                    <i class="fas fa-chevron-right position-absolute top-50 end-0 translate-middle-y text-muted d-none d-md-block"></i>
-                                </div>
-                                <div class="col-md-4 position-relative">
-                                    <div class="p-3">
-                                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                                            <i class="fas fa-truck text-warning fa-lg"></i>
-                                        </div>
-                                        <h6 class="fw-bold">2. Delivery + 3 Days</h6>
-                                        <p class="small text-muted">Timer starts upon delivery. Buyer has 3 days to verify item.</p>
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
+                                        <i class="fas fa-lock text-primary fa-lg"></i>
                                     </div>
-                                    <i class="fas fa-chevron-right position-absolute top-50 end-0 translate-middle-y text-muted d-none d-md-block"></i>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="p-3">
-                                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                                            <i class="fas fa-wallet text-success fa-lg"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card-premium h-100 p-4 border-start border-4 border-warning">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <p class="text-muted small mb-1">In 3-Day Window</p>
+                                        <h3 class="fw-bold mb-0" id="window-total">₦0.00</h3>
+                                        <small class="text-muted" id="window-count">0 orders delivered recently</small>
+                                    </div>
+                                    <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
+                                        <i class="fas fa-hourglass-half text-warning fa-lg"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card-premium h-100 p-4 border-start border-4 border-success">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <p class="text-muted small mb-1">Ready for Payout</p>
+                                        <h3 class="fw-bold mb-0 text-success" id="pending-total">₦0.00</h3>
+                                        <small class="text-muted" id="pending-count">0 orders matured</small>
+                                    </div>
+                                    <div class="bg-success bg-opacity-10 p-3 rounded-circle">
+                                        <i class="fas fa-check-circle text-success fa-lg"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions Section -->
+                    <div class="row g-4">
+                        <div class="col-md-12">
+                            <div class="card-premium p-4">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <div>
+                                        <h5 class="fw-bold mb-1">Escrow Settlement</h5>
+                                        <p class="text-muted small mb-0">Release funds to vendors for orders delivered over 3 days ago with no active returns.</p>
+                                    </div>
+                                    <button id="process-btn" class="btn btn-primary px-4 py-2 fw-bold shadow-sm">
+                                        <i class="fas fa-sync-alt me-2"></i> Run Settlement Batch
+                                    </button>
+                                </div>
+                                
+                                <div id="process-result" class="alert alert-info d-none">
+                                    <i class="fas fa-info-circle me-2"></i> <span id="process-msg"></span>
+                                </div>
+
+                                <hr>
+                                
+                                <h6 class="fw-bold mb-3">How it works</h6>
+                                <div class="row text-center">
+                                    <div class="col-md-4 position-relative">
+                                        <div class="p-3">
+                                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                                <i class="fas fa-shopping-cart text-primary fa-lg"></i>
+                                            </div>
+                                            <h6 class="fw-bold">1. Buyer Pays</h6>
+                                            <p class="small text-muted">Funds are held securely in the NIECOMM Escrow Account.</p>
                                         </div>
-                                        <h6 class="fw-bold">3. Vendor Paid</h6>
-                                        <p class="small text-muted">Funds automatically released to Vendor Wallet if no complaints.</p>
+                                        <i class="fas fa-chevron-right position-absolute top-50 end-0 translate-middle-y text-muted d-none d-md-block"></i>
+                                    </div>
+                                    <div class="col-md-4 position-relative">
+                                        <div class="p-3">
+                                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                                <i class="fas fa-truck text-warning fa-lg"></i>
+                                            </div>
+                                            <h6 class="fw-bold">2. Delivery + 3 Days</h6>
+                                            <p class="small text-muted">Timer starts upon delivery. Buyer has 3 days to verify item.</p>
+                                        </div>
+                                        <i class="fas fa-chevron-right position-absolute top-50 end-0 translate-middle-y text-muted d-none d-md-block"></i>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="p-3">
+                                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                                                <i class="fas fa-wallet text-success fa-lg"></i>
+                                            </div>
+                                            <h6 class="fw-bold">3. Vendor Paid</h6>
+                                            <p class="small text-muted">Funds automatically released to Vendor Wallet if no complaints.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -168,12 +313,196 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             loadNav();
-            loadStats();
+            
+            // Security Check
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'login.html';
+                return;
+            }
+            const user = JSON.parse(userStr);
+            if (user.role !== 'admin') {
+                alert('Access Denied: Admin privileges required.');
+                window.location.href = 'index.html';
+                return;
+            }
 
+            loadDashboardStats();
             document.getElementById('process-btn').addEventListener('click', processEscrow);
         });
 
-        async function loadStats() {
+        // SPA Navigation
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+
+            // Show selected
+            document.getElementById(`section-${sectionId}`).classList.add('active');
+            document.getElementById(`nav-${sectionId}`).classList.add('active');
+
+            // Load Data based on section
+            if (sectionId === 'users') loadUsers();
+            if (sectionId === 'verifications') loadVerifications();
+            if (sectionId === 'orders') loadOrders();
+            if (sectionId === 'escrow') loadEscrowStats();
+            if (sectionId === 'dashboard') loadDashboardStats();
+        }
+
+        async function loadDashboardStats() {
+            try {
+                const res = await fetch('/api/admin/dashboard-stats');
+                const data = await res.json();
+
+                document.getElementById('stat-users').innerText = data.users;
+                document.getElementById('stat-vendors').innerText = data.vendors;
+                document.getElementById('stat-orders').innerText = data.orders;
+                document.getElementById('stat-escrow').innerText = formatCurrency(data.escrow_held);
+                
+                if (data.pending_verifications > 0) {
+                    document.getElementById('pending-alert').style.setProperty('display', 'flex', 'important');
+                    document.getElementById('pending-count-alert').innerText = data.pending_verifications;
+                    document.getElementById('nav-badge-verify').style.display = 'inline-block';
+                    document.getElementById('nav-badge-verify').innerText = data.pending_verifications;
+                } else {
+                    document.getElementById('pending-alert').style.setProperty('display', 'none', 'important');
+                    document.getElementById('nav-badge-verify').style.display = 'none';
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadUsers(role = 'all', btn = null) {
+            if (btn) {
+                btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+            
+            const url = role === 'all' ? '/api/admin/users' : `/api/admin/users?role=${role}`;
+            
+            try {
+                const res = await fetch(url);
+                const users = await res.json();
+                
+                const tbody = document.getElementById('users-table');
+                tbody.innerHTML = users.map(u => `
+                    <tr>
+                        <td>
+                            <div class="fw-bold">${u.username}</div>
+                            <div class="small text-muted">ID: ${u.id}</div>
+                        </td>
+                        <td><span class="badge bg-${u.role === 'admin' ? 'danger' : (u.role === 'vendor' ? 'info' : 'secondary')}">${u.role.toUpperCase()}</span></td>
+                        <td>
+                            <div>${u.email}</div>
+                            <div class="small text-muted">${u.phone || '-'}</div>
+                        </td>
+                        <td>
+                            ${u.is_verified ? '<span class="badge bg-success">Verified</span>' : '<span class="badge bg-warning text-dark">Unverified</span>'}
+                        </td>
+                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadVerifications() {
+            // Fetch users with role='vendor'
+            try {
+                const res = await fetch('/api/admin/users?role=vendor');
+                const vendors = await res.json();
+                const pending = vendors.filter(v => v.is_verified === 0);
+
+                const tbody = document.getElementById('verifications-table');
+                if (pending.length === 0) {
+                    document.getElementById('no-verifications').classList.remove('d-none');
+                    tbody.innerHTML = '';
+                    return;
+                }
+                
+                document.getElementById('no-verifications').classList.add('d-none');
+                tbody.innerHTML = pending.map(v => `
+                    <tr>
+                        <td>
+                            <div class="fw-bold">${v.username}</div>
+                            <div class="small text-muted">${v.email}</div>
+                        </td>
+                        <td>
+                            <div><strong>Shop:</strong> ${v.shop_address || 'N/A'}</div>
+                            <div><strong>CAC:</strong> ${v.cac_number || 'N/A'}</div>
+                        </td>
+                        <td>Lagos (Placeholder)</td>
+                        <td>
+                            <button onclick="verifyVendor(${v.id}, 'approve')" class="btn btn-sm btn-success me-1">Approve</button>
+                            <button onclick="verifyVendor(${v.id}, 'reject')" class="btn btn-sm btn-outline-danger">Reject</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function verifyVendor(id, action) {
+            if (!confirm(`Are you sure you want to ${action} this vendor?`)) return;
+
+            try {
+                const res = await fetch('/api/admin/verify-vendor', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: id, action })
+                });
+                
+                if (res.ok) {
+                    alert('Vendor updated successfully');
+                    loadVerifications();
+                    loadDashboardStats(); // Refresh badges
+                } else {
+                    alert('Failed to update vendor');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const res = await fetch('/api/admin/orders');
+                const orders = await res.json();
+                
+                const tbody = document.getElementById('orders-table');
+                tbody.innerHTML = orders.map(o => `
+                    <tr>
+                        <td><span class="fw-bold text-primary">${o.order_number}</span></td>
+                        <td>${o.customer_name}</td>
+                        <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <span class="badge bg-${getStatusColor(o.status)}">${o.status.toUpperCase()}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-${o.payment_status === 'paid' ? 'success' : 'warning'} text-dark">${o.payment_status.toUpperCase()}</span>
+                        </td>
+                        <td class="fw-bold">${formatCurrency(o.total_amount)}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function getStatusColor(status) {
+            if (status === 'delivered') return 'success';
+            if (status === 'shipped') return 'info';
+            if (status === 'processing') return 'warning';
+            if (status === 'cancelled') return 'danger';
+            return 'secondary';
+        }
+
+        // Reused Escrow Functions
+        async function loadEscrowStats() {
             try {
                 const res = await fetch('/api/admin/escrow-stats');
                 const data = await res.json();
@@ -212,7 +541,7 @@
                     msgSpan.innerText = 'No eligible orders found for payout at this time.';
                 }
 
-                loadStats(); // Refresh stats
+                loadEscrowStats(); // Refresh stats
             } catch (err) {
                 resultBox.classList.remove('d-none');
                 resultBox.classList.add('alert-danger');
