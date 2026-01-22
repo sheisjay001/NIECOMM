@@ -320,7 +320,8 @@
             try {
                 const res = await fetch(`/api/orders/${orderId}/confirm`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type })
                 });
 
                 if (res.ok) {

@@ -1764,6 +1764,8 @@ app.post('/api/admin/process-escrow', async (req, res) => {
 // User: Confirm Order Receipt & Satisfaction
 app.post('/api/orders/:id/confirm', async (req, res) => {
     const orderId = req.params.id;
+    const { type } = req.body;
+
     try {
         const conn = await getDb();
         
@@ -1784,31 +1786,43 @@ app.post('/api/orders/:id/confirm', async (req, res) => {
 
         const order = orders[0];
 
-        // Check if already processed
-        if (order.payout_status === 'completed') {
+        if (type === 'receipt') {
+            // Just mark as delivered
+            await conn.execute("UPDATE orders SET status = 'delivered', delivered_at = IF(delivered_at IS NULL, NOW(), delivered_at) WHERE id = ?", [orderId]);
             await conn.end();
-            return res.status(400).json({ error: 'Order already completed' });
+            return res.json({ message: 'Order marked as delivered' });
+
+        } else if (type === 'satisfaction') {
+            // Check if already processed
+            if (order.payout_status === 'completed') {
+                await conn.end();
+                return res.status(400).json({ error: 'Order already completed' });
+            }
+
+            // 2. Credit Vendor Wallet
+            await conn.execute(
+                "INSERT INTO wallet_transactions (user_id, amount, type, description, status, reference) VALUES (?, ?, 'credit', ?, 'completed', ?)",
+                [order.vendor_id, order.total_amount, `Payout for Order #${order.order_number} (Confirmed by Buyer)`, order.order_number]
+            );
+
+            // 3. Update Order Status
+            // Mark as delivered (if not already), paid, and payout completed
+            await conn.execute(`
+                UPDATE orders 
+                SET status = 'delivered', 
+                    delivered_at = IF(delivered_at IS NULL, NOW(), delivered_at),
+                    payment_status = 'paid',
+                    payout_status = 'completed'
+                WHERE id = ?
+            `, [orderId]);
+
+            await conn.end();
+            res.json({ message: 'Order confirmed and funds released to vendor' });
+        
+        } else {
+            await conn.end();
+            return res.status(400).json({ error: 'Confirmation type required' });
         }
-
-        // 2. Credit Vendor Wallet
-        await conn.execute(
-            "INSERT INTO wallet_transactions (user_id, amount, type, description, status, reference) VALUES (?, ?, 'credit', ?, 'completed', ?)",
-            [order.vendor_id, order.total_amount, `Payout for Order #${order.order_number} (Confirmed by Buyer)`, order.order_number]
-        );
-
-        // 3. Update Order Status
-        // Mark as delivered (if not already), paid, and payout completed
-        await conn.execute(`
-            UPDATE orders 
-            SET status = 'delivered', 
-                delivered_at = IF(delivered_at IS NULL, NOW(), delivered_at),
-                payment_status = 'paid',
-                payout_status = 'completed'
-            WHERE id = ?
-        `, [orderId]);
-
-        await conn.end();
-        res.json({ message: 'Order confirmed and funds released to vendor' });
 
     } catch (err) {
         console.error(err);
