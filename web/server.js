@@ -62,9 +62,11 @@ const storage = multer.diskStorage({
             if (!fs.existsSync(absoluteDir)){
                 fs.mkdirSync(absoluteDir, { recursive: true });
             }
+            // Check write permission
+            fs.accessSync(absoluteDir, fs.constants.W_OK);
             cb(null, absoluteDir);
         } catch (err) {
-            console.error(`Upload Error: Could not write to ${absoluteDir}. Falling back to temp dir. Error: ${err.message}`);
+            console.error(`Upload Error: Could not write to ${absoluteDir} (Read-Only Filesystem). Falling back to temp dir.`);
             cb(null, os.tmpdir());
         }
     },
@@ -1273,7 +1275,21 @@ app.post('/api/orders', upload.single('proof_of_payment'), async (req, res) => {
         }
 
         const orderNumber = 'NGM-' + Date.now();
-        const proofPath = req.file ? '/uploads/' + req.file.filename : null;
+        
+        // Determine proof path based on where it was actually saved
+        let proofPath = null;
+        if (req.file) {
+            if (req.file.destination.includes('uploads')) {
+                // Saved to public/uploads/...
+                // Construct URL: /uploads/subdir/filename
+                const relativeDir = path.relative(path.join(__dirname, 'public'), req.file.destination);
+                proofPath = '/' + relativeDir.replace(/\\/g, '/') + '/' + req.file.filename;
+            } else {
+                // Saved to temp dir (fallback)
+                // We'll store a placeholder or the temp path, though it won't be accessible publicly
+                proofPath = '(Temp Storage) ' + req.file.filename;
+            }
+        }
         
         // Create Order
         // Status is 'processing', Payment is 'held' (Escrow)
