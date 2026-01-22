@@ -362,11 +362,15 @@ async function initDb() {
             amount DECIMAL(10, 2) NOT NULL,
             type ENUM('credit', 'debit') NOT NULL,
             description VARCHAR(255),
-            status ENUM('pending', 'completed', 'failed') DEFAULT 'completed',
+            status ENUM('pending', 'completed', 'failed', 'rejected') DEFAULT 'completed',
             reference VARCHAR(100),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )`);
+
+        try {
+            await db.query("ALTER TABLE wallet_transactions MODIFY COLUMN status ENUM('pending', 'completed', 'failed', 'rejected') DEFAULT 'completed'");
+        } catch (e) {}
 
         // Update Users Table for OTP
         try {
@@ -1078,7 +1082,8 @@ app.post('/api/admin/withdrawals/:id', async (req, res) => {
             const [tx] = await conn.execute('SELECT user_id, amount FROM wallet_transactions WHERE id = ?', [req.params.id]);
             if (tx.length > 0) {
                 const { user_id, amount } = tx[0];
-                await conn.execute("INSERT INTO wallet_transactions (user_id, amount, type, description, status) VALUES (?, ?, 'credit', 'Withdrawal Refunded', 'completed')", [user_id, amount]);
+                const refundDesc = admin_note ? `Withdrawal Refunded - ${admin_note}` : 'Withdrawal Refunded';
+                await conn.execute("INSERT INTO wallet_transactions (user_id, amount, type, description, status) VALUES (?, ?, 'credit', ?, 'completed')", [user_id, amount, refundDesc]);
             }
         }
 

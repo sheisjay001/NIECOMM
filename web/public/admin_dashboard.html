@@ -436,23 +436,35 @@
         }
 
         async function processWithdrawal(id, status) {
-            if (!confirm(`Are you sure you want to mark this withdrawal as ${status}?`)) return;
+            let note = '';
+            if (status === 'rejected') {
+                note = prompt("Please provide a reason for rejection:");
+                if (note === null) return; // Cancelled
+                if (note.trim() === '') {
+                    alert("A reason is required to reject a withdrawal.");
+                    return;
+                }
+            } else {
+                if (!confirm(`Are you sure you want to mark this withdrawal as ${status}?`)) return;
+            }
 
             try {
                 const res = await fetch(`/api/admin/withdrawals/${id}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status })
+                    body: JSON.stringify({ status, admin_note: note })
                 });
 
                 if (res.ok) {
                     alert(`Withdrawal ${status} successfully`);
                     loadWithdrawals();
                 } else {
-                    alert('Failed to update withdrawal');
+                    const data = await res.json();
+                    alert(data.error || 'Failed to update withdrawal');
                 }
             } catch (err) {
                 console.error(err);
+                alert('Error processing withdrawal');
             }
         }
 
