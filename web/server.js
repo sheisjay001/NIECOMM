@@ -53,6 +53,7 @@ const storage = multer.diskStorage({
         if (file.fieldname === 'reviewImage') dir = 'public/uploads/reviews';
         if (file.fieldname === 'cac_certificate') dir = 'public/uploads/verifications';
         if (file.fieldname === 'shop_image') dir = 'public/uploads/verifications';
+        if (file.fieldname === 'proof_of_payment') dir = 'public/uploads/receipts';
         
         const absoluteDir = path.join(__dirname, dir);
         if (!fs.existsSync(absoluteDir)){
@@ -1992,7 +1993,7 @@ app.use((err, req, res, next) => {
     }
     if (err) {
         console.error(err.stack || err);
-        return res.status(500).json({ error: 'Something went wrong!' });
+        return res.status(500).json({ error: 'Something went wrong! ' + (err.message || '') });
     }
     next();
 });
