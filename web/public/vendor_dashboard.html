@@ -816,11 +816,24 @@
                 const accName = document.getElementById('account-name').value;
 
                 try {
-                    // Assuming bank details are stored in profile for now or separate table
-                    // Re-using profile endpoint or specific one if implemented
-                    alert('Bank details saved (Simulation)'); 
+                    const res = await fetch('/api/vendor/profile', {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ 
+                            user_id: currentUser.id, 
+                            bank_name: bankName,
+                            account_number: accNum,
+                            account_name: accName
+                        })
+                    });
+                    
+                    if (res.ok) {
+                        alert('Bank details saved successfully');
+                    } else {
+                        alert('Failed to update bank details');
+                    }
                 } catch (err) {
-                    alert('Failed to update bank details');
+                    alert('Error updating bank details');
                 }
             });
         }

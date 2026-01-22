@@ -1156,7 +1156,7 @@ app.get('/api/vendor/profile', async (req, res) => {
 
     try {
         const conn = await getDb();
-        const [rows] = await conn.execute('SELECT username, email, phone, shop_address, cac_number, state_id, city_id, lga_id FROM users WHERE id = ?', [userId]);
+        const [rows] = await conn.execute('SELECT username, email, phone, shop_address, cac_number, state_id, city_id, lga_id, bank_name, account_number, account_name FROM users WHERE id = ?', [userId]);
         await conn.end();
         if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
         res.json(rows[0]);
@@ -1166,16 +1166,33 @@ app.get('/api/vendor/profile', async (req, res) => {
     }
 });
 
-// Update Vendor Profile
+// Update Vendor Profile (General & Bank)
 app.put('/api/vendor/profile', async (req, res) => {
-    const { user_id, username, phone, shop_address, cac_number } = req.body;
+    const { user_id, username, phone, shop_address, cac_number, bank_name, account_number, account_name } = req.body;
     if (!user_id) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
         const conn = await getDb();
+        
+        // Build dynamic update query
+        let fields = [];
+        let params = [];
+
+        if (username !== undefined) { fields.push('username = ?'); params.push(username); }
+        if (phone !== undefined) { fields.push('phone = ?'); params.push(phone); }
+        if (shop_address !== undefined) { fields.push('shop_address = ?'); params.push(shop_address); }
+        if (cac_number !== undefined) { fields.push('cac_number = ?'); params.push(cac_number); }
+        if (bank_name !== undefined) { fields.push('bank_name = ?'); params.push(bank_name); }
+        if (account_number !== undefined) { fields.push('account_number = ?'); params.push(account_number); }
+        if (account_name !== undefined) { fields.push('account_name = ?'); params.push(account_name); }
+
+        if (fields.length === 0) return res.json({ message: 'No changes provided' });
+
+        params.push(user_id);
+        
         await conn.execute(
-            'UPDATE users SET username = ?, phone = ?, shop_address = ?, cac_number = ? WHERE id = ?',
-            [username, phone, shop_address, cac_number, user_id]
+            `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
+            params
         );
         await conn.end();
         res.json({ message: 'Profile updated successfully' });
@@ -1409,24 +1426,7 @@ app.post('/api/returns', async (req, res) => {
     }
 });
 
-// Update Vendor Profile (Bank Details)
-app.put('/api/vendor/profile', async (req, res) => {
-    const { user_id, bank_name, account_number, account_name } = req.body;
-    if (!user_id) return res.status(400).json({ error: 'Unauthorized' });
-    
-    try {
-        const conn = await getDb();
-        await conn.execute(
-            'UPDATE users SET bank_name = ?, account_number = ?, account_name = ? WHERE id = ?',
-            [bank_name, account_number, account_name, user_id]
-        );
-        await conn.end();
-        res.json({ message: 'Profile updated' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server error' });
-    }
-});
+
 
 // Get User Returns
 app.get('/api/user/returns', async (req, res) => {
