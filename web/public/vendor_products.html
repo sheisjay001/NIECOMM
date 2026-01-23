@@ -74,6 +74,7 @@
                                         <th>Price</th>
                                         <th>Stock</th>
                                         <th>Sales</th>
+                                        <th>Rating</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -182,11 +183,14 @@
                 const tbody = document.getElementById('products-body');
                 
                 if (products.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No products found.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">No products found.</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = products.map(p => `
+                tbody.innerHTML = products.map(p => {
+                    const rating = p.avg_rating ? parseFloat(p.avg_rating).toFixed(1) : '0.0';
+                    const count = p.review_count || 0;
+                    return `
                     <tr>
                         <td>
                             ${p.image ? `<img src="${p.image}" class="rounded" width="50" height="50" style="object-fit: cover;">` : '<div class="bg-secondary rounded" style="width:50px;height:50px;"></div>'}
@@ -195,6 +199,10 @@
                         <td>₦${Number(p.price).toLocaleString()}</td>
                         <td>${p.quantity}</td>
                         <td>${p.sales_count || 0}</td>
+                        <td>
+                            <span class="text-warning"><i class="fas fa-star"></i> ${rating}</span>
+                            <small class="text-muted">(${count})</small>
+                        </td>
                         <td><span class="badge bg-success">Active</span></td>
                         <td>
                             <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${p.id})">
@@ -202,7 +210,7 @@
                             </button>
                         </td>
                     </tr>
-                `).join('');
+                `}).join('');
             } catch (err) {
                 console.error(err);
             }

@@ -175,6 +175,17 @@ function checkAuth() {
     if (navContact) navContact.style.display = 'none';
 
     const user = JSON.parse(userStr);
+
+    // Redirect logged-in users away from homepage
+    const path = window.location.pathname;
+    if (path === '/' || path.endsWith('index.html') || path.endsWith('/')) {
+         let dashboardLink = 'user_dashboard.html';
+         if (user.role === 'vendor') dashboardLink = 'vendor_dashboard.html';
+         if (user.role === 'admin') dashboardLink = 'admin_dashboard.html';
+         window.location.href = dashboardLink;
+         return user;
+    }
+
     if (authButtons) {
         let dashboardLink = 'user_dashboard.html';
         let showOrders = true;

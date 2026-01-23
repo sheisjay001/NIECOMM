@@ -862,7 +862,9 @@ app.get('/api/vendor/products', async (req, res) => {
         const conn = await getDb();
         const [rows] = await conn.execute(`
             SELECT p.*, 
-                   COALESCE((SELECT SUM(quantity) FROM order_items WHERE product_id = p.id), 0) as sales_count 
+                   COALESCE((SELECT SUM(quantity) FROM order_items WHERE product_id = p.id), 0) as sales_count,
+                   (SELECT AVG(rating) FROM product_reviews WHERE product_id = p.id) as avg_rating,
+                   (SELECT COUNT(*) FROM product_reviews WHERE product_id = p.id) as review_count
             FROM products p 
             WHERE vendor_id = ? 
             ORDER BY created_at DESC
@@ -1240,10 +1242,33 @@ app.get('/api/messages', async (req, res) => {
                 ORDER BY last_time DESC
             `, [userId, userId, userId]);
             
-            // Fetch partner names
+            // Fetch partner names and latest message context
             for (let row of rows) {
+                // Get partner name
                 const [u] = await conn.execute('SELECT username FROM users WHERE id = ?', [row.partner_id]);
                 if (u.length > 0) row.partner_name = u[0].username;
+
+                // Get latest message details
+                const [lastMsg] = await conn.execute(
+                    'SELECT content, product_id, order_id FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY created_at DESC LIMIT 1',
+                    [userId, row.partner_id, row.partner_id, userId]
+                );
+                
+                if (lastMsg.length > 0) {
+                    row.last_message = lastMsg[0].content;
+                    row.product_id = lastMsg[0].product_id;
+                    row.order_id = lastMsg[0].order_id;
+
+                    if (row.product_id) {
+                        const [p] = await conn.execute('SELECT name FROM products WHERE id = ?', [row.product_id]);
+                        if (p.length > 0) row.product_name = p[0].name;
+                    }
+
+                    if (row.order_id) {
+                        const [o] = await conn.execute('SELECT order_number FROM orders WHERE id = ?', [row.order_id]);
+                        if (o.length > 0) row.order_number = o[0].order_number;
+                    }
+                }
             }
             
             await conn.end();

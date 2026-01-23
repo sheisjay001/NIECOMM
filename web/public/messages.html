@@ -106,14 +106,22 @@
                     return;
                 }
 
-                list.innerHTML = conversations.map(c => `
+                list.innerHTML = conversations.map(c => {
+                    let context = '';
+                    if (c.order_number) context = `<span class="badge bg-warning text-dark me-1"><i class="fas fa-box"></i> Order #${c.order_number}</span>`;
+                    if (c.product_name) context = `<span class="badge bg-info text-dark me-1"><i class="fas fa-tag"></i> ${c.product_name}</span>`;
+                    
+                    return `
                     <a href="#" class="list-group-item list-group-item-action" onclick="openChat(${c.partner_id}, '${c.partner_name || 'User ' + c.partner_id}')">
                         <div class="d-flex w-100 justify-content-between">
                             <h6 class="mb-1">${c.partner_name || 'User ' + c.partner_id}</h6>
-                            <small class="text-muted">${new Date(c.last_time).toLocaleDateString()}</small>
+                            <small class="text-muted" style="font-size:0.75rem">${new Date(c.last_time).toLocaleDateString()}</small>
                         </div>
+                        <div class="mb-1">${context}</div>
+                        <p class="mb-1 text-muted small text-truncate">${c.last_message || '...'}</p>
                     </a>
-                `).join('');
+                    `;
+                }).join('');
             } catch (err) {
                 console.error(err);
             }
