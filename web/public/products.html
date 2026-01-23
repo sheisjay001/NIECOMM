@@ -39,59 +39,43 @@
         <h2 class="mb-4">Marketplace</h2>
         <div class="row g-4" id="products-grid">
             <!-- Loading Skeletons -->
-            <div class="col-md-3">
+            <div class="col-6 col-md-4 col-lg-3">
                 <div class="card h-100 border-0 shadow-sm">
-                    <div class="skeleton skeleton-rect" style="height: 200px;"></div>
+                    <div class="skeleton skeleton-rect" style="aspect-ratio: 1/1;"></div>
                     <div class="card-body">
                         <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
                         <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
                         <div class="skeleton skeleton-text mb-2" style="width: 60%;"></div>
-                        <div class="d-flex gap-2 mt-3">
-                            <div class="skeleton skeleton-text w-50" style="height: 30px;"></div>
-                            <div class="skeleton skeleton-text w-50" style="height: 30px;"></div>
-                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-6 col-md-4 col-lg-3">
                 <div class="card h-100 border-0 shadow-sm">
-                    <div class="skeleton skeleton-rect" style="height: 200px;"></div>
+                    <div class="skeleton skeleton-rect" style="aspect-ratio: 1/1;"></div>
                     <div class="card-body">
                         <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
                         <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
                         <div class="skeleton skeleton-text mb-2" style="width: 60%;"></div>
-                        <div class="d-flex gap-2 mt-3">
-                            <div class="skeleton skeleton-text w-50" style="height: 30px;"></div>
-                            <div class="skeleton skeleton-text w-50" style="height: 30px;"></div>
-                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 d-none d-md-block">
+            <div class="col-6 col-md-4 col-lg-3">
                 <div class="card h-100 border-0 shadow-sm">
-                    <div class="skeleton skeleton-rect" style="height: 200px;"></div>
+                    <div class="skeleton skeleton-rect" style="aspect-ratio: 1/1;"></div>
                     <div class="card-body">
                         <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
                         <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
                         <div class="skeleton skeleton-text mb-2" style="width: 60%;"></div>
-                        <div class="d-flex gap-2 mt-3">
-                            <div class="skeleton skeleton-text w-50" style="height: 30px;"></div>
-                            <div class="skeleton skeleton-text w-50" style="height: 30px;"></div>
-                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 d-none d-md-block">
+            <div class="col-6 col-md-4 col-lg-3 d-none d-md-block">
                 <div class="card h-100 border-0 shadow-sm">
-                    <div class="skeleton skeleton-rect" style="height: 200px;"></div>
+                    <div class="skeleton skeleton-rect" style="aspect-ratio: 1/1;"></div>
                     <div class="card-body">
                         <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
                         <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
                         <div class="skeleton skeleton-text mb-2" style="width: 60%;"></div>
-                        <div class="d-flex gap-2 mt-3">
-                            <div class="skeleton skeleton-text w-50" style="height: 30px;"></div>
-                            <div class="skeleton skeleton-text w-50" style="height: 30px;"></div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -230,27 +214,27 @@
                     }
 
                     return `
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-4 col-lg-3">
                         <div class="card h-100 border-0 shadow-sm hover-shadow">
                             <div class="position-relative">
-                                <img src="${p.image_url || 'https://via.placeholder.com/300'}" class="card-img-top" alt="${p.name}" style="height: 200px; object-fit: cover;">
+                                <img src="${p.image_url || 'https://via.placeholder.com/300'}" class="card-img-top" alt="${p.name}" style="aspect-ratio: 1/1; object-fit: cover;">
                                 ${p.is_verified ? '<span class="position-absolute top-0 end-0 badge bg-success m-2"><i class="fas fa-check-circle"></i> Verified</span>' : ''}
                             </div>
-                            <div class="card-body">
-                                <h5 class="card-title text-truncate mb-1">${p.name}</h5>
+                            <div class="card-body p-2 p-md-3">
+                                <h5 class="card-title text-truncate mb-1 small-md">${p.name}</h5>
                                 <p class="card-text text-primary fw-bold mb-1">₦${Number(p.price).toLocaleString()}</p>
                                 
                                 ${distanceBadge}
 
-                                <div class="small text-muted mb-2">
+                                <div class="small text-muted mb-2 d-none d-md-block">
                                     <i class="fas fa-map-marker-alt me-1"></i> ${p.state_name || 'Nationwide'}${p.city_name ? ', ' + p.city_name : ''}
                                 </div>
                                 
                                 ${p.sales_count > 0 ? `<div class="small text-success mb-2"><i class="fas fa-shopping-bag me-1"></i> ${p.sales_count} sold</div>` : ''}
 
-                                <div class="d-flex gap-2 mt-3">
-                                    <a href="product_details.html?id=${p.id}" class="btn btn-sm btn-light border w-50">Details</a>
-                                    <button onclick='addToCart(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="btn btn-sm btn-outline-primary w-50">Add</button>
+                                <div class="d-flex gap-2 mt-3 flex-column flex-md-row">
+                                    <a href="product_details.html?id=${p.id}" class="btn btn-sm btn-light border w-100">Details</a>
+                                    <button onclick='addToCart(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="btn btn-sm btn-outline-primary w-100">Add</button>
                                 </div>
                             </div>
                         </div>

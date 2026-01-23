@@ -257,20 +257,20 @@
                 }
 
                 container.innerHTML = featured.map((p, index) => `
-                    <div class="col-md-6 col-lg-3 fade-up" style="animation-delay: ${index * 0.1}s">
+                    <div class="col-6 col-md-4 col-lg-3 fade-up" style="animation-delay: ${index * 0.1}s">
                         <div class="product-card-premium">
                             <div class="product-image-container">
                                 <img src="${p.image || 'https://via.placeholder.com/300'}" alt="${p.name}">
                                 <span class="badge bg-white text-dark position-absolute top-0 start-0 m-3 shadow-sm fw-bold">New</span>
                             </div>
-                            <div class="p-4">
+                            <div class="p-3 p-md-4">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h5 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 70%;">${p.name}</h5>
-                                    <h5 class="text-primary fw-bold mb-0">₦${parseFloat(p.price).toLocaleString()}</h5>
+                                    <h5 class="fw-bold text-dark mb-0 text-truncate small-md" style="max-width: 70%;">${p.name}</h5>
+                                    <h5 class="text-primary fw-bold mb-0 small-md">₦${parseFloat(p.price).toLocaleString()}</h5>
                                 </div>
-                                <p class="text-muted small mb-3 text-truncate">${p.description || 'Premium quality gadget verified by NIECOMM.'}</p>
+                                <p class="text-muted small mb-3 text-truncate d-none d-md-block">${p.description || 'Premium quality gadget verified by NIECOMM.'}</p>
                                 <button class="btn btn-dark w-100 rounded-pill py-2 fw-bold" onclick='addToCart(${JSON.stringify(p).replace(/'/g, "&#39;")})'>
-                                    Add to Cart
+                                    Add <span class="d-none d-md-inline">to Cart</span>
                                 </button>
                             </div>
                         </div>

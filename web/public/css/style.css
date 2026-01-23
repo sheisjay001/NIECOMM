@@ -269,10 +269,14 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
+    .display-1 {
+        font-size: 3rem !important;
+    }
+
     .hero-premium {
         min-height: auto;
-        padding-top: 40px;
-        padding-bottom: 60px;
+        padding-top: 6rem; /* Account for fixed nav */
+        padding-bottom: 3rem;
         text-align: center;
     }
 
@@ -284,6 +288,11 @@ h1, h2, h3, h4, h5, h6 {
         flex-direction: column;
         gap: 1rem !important;
         align-items: center;
+    }
+
+    .hero-premium .col-lg-7, 
+    .hero-premium .col-lg-5 {
+        margin-bottom: 2rem;
     }
 
     .hero-premium .btn-premium-primary, 
@@ -299,12 +308,30 @@ h1, h2, h3, h4, h5, h6 {
         opacity: 0.6;
     }
 
+    .navbar-premium {
+        padding: 0.5rem 0;
+    }
+
+    /* Adjust Bento Grid heights on mobile */
     .bento-item {
+        min-height: 250px;
         padding: 25px;
     }
 
     .product-image-container {
-        height: 220px;
+        height: auto; /* Let aspect-ratio handle it */
+        aspect-ratio: 1/1;
+    }
+
+    /* Product Grid: 2 columns with smaller gap */
+    .row.g-4 {
+        --bs-gutter-x: 1rem;
+        --bs-gutter-y: 1rem;
+    }
+
+    /* Utility */
+    .small-md {
+        font-size: 0.85rem;
     }
 
     /* Navbar adjustments */

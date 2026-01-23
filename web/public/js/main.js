@@ -4,15 +4,8 @@
 function loadNav() {
     const navPlaceholder = document.getElementById('nav-placeholder');
     if (navPlaceholder) {
-        // Simplified for this static demo, usually this would be a fetch or include
-        // For now, let's just inject the HTML structure if it's missing, 
-        // OR better, rely on the page already having it. 
-        // The previous files have the nav, but let's standardize.
-        // Actually, to keep it simple and robust, I'll assume the nav is IN the HTML file
-        // or I can inject it here. Let's inject it to be DRY.
-        
         navPlaceholder.innerHTML = `
-        <nav class="navbar navbar-expand-lg sticky-top bg-white">
+        <nav class="navbar navbar-expand-lg sticky-top bg-white shadow-sm">
             <div class="container">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="/">
                     <div class="bg-primary text-white rounded p-1 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
@@ -20,30 +13,53 @@ function loadNav() {
                     </div>
                     <span class="fw-bold text-dark tracking-tight">NIECOMM</span>
                 </a>
-                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+                
+                <div class="d-flex align-items-center gap-3 order-lg-last">
+                    <a href="cart.html" class="position-relative text-secondary hover-primary">
+                        <i class="fas fa-shopping-cart fa-lg"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white" id="cart-count-badge" style="font-size: 0.6rem;">0</span>
+                    </a>
+                    
+                    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                </div>
+
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-4 me-auto mb-2 mb-lg-0">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item" id="nav-home"><a class="nav-link px-3" href="/">Home</a></li>
                         <li class="nav-item"><a class="nav-link px-3" href="products.html">Marketplace</a></li>
                         <li class="nav-item"><a class="nav-link px-3" href="vendors.html">Vendors</a></li>
                         <li class="nav-item" id="nav-about"><a class="nav-link px-3" href="about.html">About</a></li>
                         <li class="nav-item" id="nav-contact"><a class="nav-link px-3" href="contact.html">Contact</a></li>
                     </ul>
-                    <div class="d-flex align-items-center gap-3">
-                         <a href="cart.html" class="position-relative text-secondary hover-primary me-3">
-                            <i class="fas fa-shopping-cart fa-lg"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white" id="cart-count-badge" style="font-size: 0.6rem;">0</span>
-                        </a>
-
-                        <div id="auth-buttons" class="d-flex align-items-center gap-2">
-                            <!-- Injected via checkAuth -->
-                        </div>
+                    <div id="auth-buttons" class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+                        <!-- Injected via checkAuth -->
                     </div>
                 </div>
             </div>
         </nav>
+
+        <!-- Mobile Bottom Navigation -->
+        <div class="mobile-bottom-nav">
+            <a href="/" class="mobile-nav-item ${window.location.pathname === '/' || window.location.pathname === '/index.html' ? 'active' : ''}">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="products.html" class="mobile-nav-item ${window.location.pathname.includes('products') ? 'active' : ''}">
+                <i class="fas fa-store"></i>
+                <span>Shop</span>
+            </a>
+            <a href="cart.html" class="mobile-nav-item ${window.location.pathname.includes('cart') ? 'active' : ''} position-relative">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" id="mobile-cart-badge" style="display: none; width: 10px; height: 10px; margin-left: -10px; margin-top: 5px;"></span>
+                <span>Cart</span>
+            </a>
+            <a href="javascript:void(0)" onclick="checkAuthRedirect()" class="mobile-nav-item ${window.location.pathname.includes('dashboard') ? 'active' : ''}">
+                <i class="fas fa-user"></i>
+                <span>Account</span>
+            </a>
+        </div>
         `;
         
         // After injecting, check auth and cart
@@ -206,3 +222,15 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCartCount();
     }
 });
+
+function checkAuthRedirect() {
+    const user = localStorage.getItem('user');
+    if (user) {
+        const userData = JSON.parse(user);
+        if (userData.role === 'vendor') window.location.href = 'vendor_dashboard.html';
+        else if (userData.role === 'admin') window.location.href = 'admin_dashboard.html';
+        else window.location.href = 'user_dashboard.html';
+    } else {
+        window.location.href = 'login.html';
+    }
+}
