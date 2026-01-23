@@ -8,102 +8,206 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .sidebar-link { cursor: pointer; }
-        .sidebar-link.active { background-color: #1E2A44; color: white !important; }
-        .sidebar-link:hover:not(.active) { background-color: #f8f9fa; }
-        .section { display: none; }
-        .section.active { display: block; }
+        .sidebar-link {
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: #495057;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        .sidebar-link:hover {
+            background-color: #e9ecef;
+            color: #dc3545; /* Red for Admin */
+        }
+        .sidebar-link.active {
+            background-color: #dc3545;
+            color: white !important;
+        }
+        .section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-premium {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            transition: transform 0.2s;
+        }
+        .card-premium:hover {
+            transform: translateY(-2px);
+        }
+        .escrow-card {
+            background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
+            border: 1px solid #ffeeba;
+        }
+        /* Mobile Sidebar */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -250px;
+                height: 100vh;
+                width: 250px;
+                z-index: 1050;
+                transition: left 0.3s ease;
+                overflow-y: auto;
+            }
+            .sidebar.show {
+                left: 0;
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 1040;
+            }
+            .sidebar-overlay.show {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body class="bg-light">
     
-    <div id="nav-placeholder"></div>
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-    <div class="container-fluid py-4">
+    <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 d-none d-md-block bg-white sidebar shadow-sm rounded p-3 me-3" style="min-height: 80vh;">
-                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
-                    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                        <span id="sidebar-initials">A</span>
+            <div class="col-md-3 col-lg-2 bg-white sidebar shadow-sm p-3" id="sidebar">
+                <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                            <span id="sidebar-initials">A</span>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold" id="sidebar-username">Admin</h6>
+                            <small class="text-muted">Platform Administrator</small>
+                        </div>
                     </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold" id="sidebar-username">Admin</h6>
-                        <small class="text-muted">Platform Administrator</small>
-                    </div>
+                    <button class="btn btn-link text-dark d-md-none" onclick="toggleSidebar()">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
+                
                 <ul class="nav flex-column gap-2">
                     <li class="nav-item">
-                        <a onclick="showSection('dashboard')" class="nav-link sidebar-link active text-dark rounded text-start mb-2" id="nav-dashboard">
-                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        <a onclick="showSection('dashboard')" class="sidebar-link active" id="nav-dashboard">
+                            <i class="fas fa-tachometer-alt me-3" style="width: 20px;"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a onclick="showSection('verifications')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-verifications">
-                            <i class="fas fa-user-check me-2"></i> Verifications <span class="badge bg-danger ms-auto" id="nav-badge-verify" style="display:none">0</span>
+                        <a onclick="showSection('verifications')" class="sidebar-link" id="nav-verifications">
+                            <i class="fas fa-user-check me-3" style="width: 20px;"></i> Verifications 
+                            <span class="badge bg-danger rounded-pill ms-auto" id="nav-badge-verify" style="display:none">0</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a onclick="showSection('users')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-users">
-                            <i class="fas fa-users me-2"></i> Users & Vendors
+                        <a onclick="showSection('users')" class="sidebar-link" id="nav-users">
+                            <i class="fas fa-users me-3" style="width: 20px;"></i> Users & Vendors
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a onclick="showSection('orders')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-orders">
-                            <i class="fas fa-shopping-bag me-2"></i> All Orders
+                        <a onclick="showSection('orders')" class="sidebar-link" id="nav-orders">
+                            <i class="fas fa-shopping-bag me-3" style="width: 20px;"></i> All Orders
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a onclick="showSection('escrow')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-escrow">
-                            <i class="fas fa-wallet me-2"></i> Escrow System
+                        <a onclick="showSection('escrow')" class="sidebar-link" id="nav-escrow">
+                            <i class="fas fa-wallet me-3" style="width: 20px;"></i> Escrow System
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a onclick="showSection('withdrawals')" class="nav-link sidebar-link text-dark rounded mb-2" id="nav-withdrawals">
-                            <i class="fas fa-money-bill-wave me-2"></i> Withdrawals <span class="badge bg-warning text-dark ms-auto" id="nav-badge-withdraw" style="display:none">0</span>
+                        <a onclick="showSection('withdrawals')" class="sidebar-link" id="nav-withdrawals">
+                            <i class="fas fa-money-bill-wave me-3" style="width: 20px;"></i> Withdrawals 
+                            <span class="badge bg-warning text-dark rounded-pill ms-auto" id="nav-badge-withdraw" style="display:none">0</span>
                         </a>
                     </li>
                     <li class="nav-item mt-4">
-                        <a href="#" onclick="logout()" class="nav-link text-danger hover-bg-light rounded">
-                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                        <a href="#" onclick="logout()" class="sidebar-link text-danger">
+                            <i class="fas fa-sign-out-alt me-3" style="width: 20px;"></i> Logout
                         </a>
                     </li>
                 </ul>
             </div>
 
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-9">
+            <div class="col-md-9 col-lg-10 py-4 px-md-4">
                 
+                <!-- Mobile Header -->
+                <div class="d-md-none d-flex justify-content-between align-items-center mb-4">
+                    <button class="btn btn-light shadow-sm border" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h5 class="mb-0 fw-bold">NIECOMM Admin</h5>
+                    <div style="width: 38px;"></div>
+                </div>
+
                 <!-- SECTION: DASHBOARD -->
                 <div id="section-dashboard" class="section active">
                     <h2 class="fw-bold mb-4">Platform Overview</h2>
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-3">
-                            <div class="card border-0 shadow-sm p-3">
-                                <p class="text-muted small mb-1">Total Users</p>
-                                <h3 class="fw-bold" id="stat-users">0</h3>
+
+                    <!-- Escrow Info Card -->
+                    <div class="card-premium escrow-card p-4 mb-4">
+                        <div class="d-flex align-items-start">
+                            <div class="bg-warning bg-opacity-25 p-3 rounded-circle me-3">
+                                <i class="fas fa-shield-alt text-warning fa-lg"></i>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 shadow-sm p-3">
-                                <p class="text-muted small mb-1">Total Vendors</p>
-                                <h3 class="fw-bold" id="stat-vendors">0</h3>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 shadow-sm p-3">
-                                <p class="text-muted small mb-1">Total Orders</p>
-                                <h3 class="fw-bold" id="stat-orders">0</h3>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 shadow-sm p-3 border-start border-4 border-primary">
-                                <p class="text-muted small mb-1">Escrow Held</p>
-                                <h3 class="fw-bold text-primary" id="stat-escrow">₦0.00</h3>
+                            <div>
+                                <h5 class="fw-bold mb-1">Escrow Status</h5>
+                                <p class="mb-0 text-dark opacity-75">Funds are held for 3 days to allow returns, then released after delivery confirmation.</p>
                             </div>
                         </div>
                     </div>
-                    <div class="alert alert-warning d-flex align-items-center" role="alert" id="pending-alert" style="display:none !important">
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-3">
+                            <div class="card-premium p-4 h-100">
+                                <p class="text-muted small mb-1">Total Users</p>
+                                <h3 class="fw-bold mb-0" id="stat-users">0</h3>
+                                <small class="text-primary">Registered Accounts</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card-premium p-4 h-100">
+                                <p class="text-muted small mb-1">Total Vendors</p>
+                                <h3 class="fw-bold mb-0" id="stat-vendors">0</h3>
+                                <small class="text-success">Active Sellers</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card-premium p-4 h-100">
+                                <p class="text-muted small mb-1">Total Orders</p>
+                                <h3 class="fw-bold mb-0" id="stat-orders">0</h3>
+                                <small class="text-muted">Platform-wide</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card-premium p-4 h-100 border-start border-4 border-primary">
+                                <p class="text-muted small mb-1">Escrow Held</p>
+                                <h3 class="fw-bold text-primary mb-0" id="stat-escrow">₦0.00</h3>
+                                <small class="text-muted">Trust Funds</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning d-flex align-items-center shadow-sm border-0" role="alert" id="pending-alert" style="display:none !important">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         <div>
                             You have <strong id="pending-count-alert">0</strong> pending vendor verifications.
@@ -115,26 +219,24 @@
                 <!-- SECTION: VERIFICATIONS -->
                 <div id="section-verifications" class="section">
                     <h2 class="fw-bold mb-4">Pending Verifications</h2>
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Vendor</th>
-                                            <th>Business Details</th>
-                                            <th>Location</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="verifications-table">
-                                        <!-- Populated via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div id="no-verifications" class="text-center py-5 d-none">
-                                <p class="text-muted">No pending verifications.</p>
-                            </div>
+                    <div class="card-premium p-0 overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4">Vendor</th>
+                                        <th>Business Details</th>
+                                        <th>Location</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="verifications-table">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="no-verifications" class="text-center py-5 d-none">
+                            <p class="text-muted">No pending verifications.</p>
                         </div>
                     </div>
                 </div>
@@ -143,30 +245,28 @@
                 <div id="section-users" class="section">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2 class="fw-bold mb-0">Users & Vendors</h2>
-                        <div class="btn-group">
+                        <div class="btn-group shadow-sm">
                             <button class="btn btn-outline-secondary active" onclick="loadUsers('all', this)">All</button>
                             <button class="btn btn-outline-secondary" onclick="loadUsers('vendor', this)">Vendors</button>
                             <button class="btn btn-outline-secondary" onclick="loadUsers('user', this)">Buyers</button>
                         </div>
                     </div>
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Username</th>
-                                            <th>Role</th>
-                                            <th>Email / Phone</th>
-                                            <th>Status</th>
-                                            <th>Joined</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="users-table">
-                                        <!-- Populated via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
+                    <div class="card-premium p-0 overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4">Username</th>
+                                        <th>Role</th>
+                                        <th>Email / Phone</th>
+                                        <th>Status</th>
+                                        <th>Joined</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -174,26 +274,32 @@
                 <!-- SECTION: ORDERS -->
                 <div id="section-orders" class="section">
                     <h2 class="fw-bold mb-4">All Orders</h2>
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Order #</th>
-                                            <th>Customer</th>
-                                            <th>Date</th>
-                                            <th>Status</th>
-                                            <th>Payment</th>
-                                            <th>Total</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="orders-table">
-                                        <!-- Populated via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
+                    
+                    <div class="card-premium escrow-card p-3 mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-info-circle text-warning me-2"></i>
+                            <small class="mb-0 fw-bold">Escrow Policy: Funds are released 3 days after delivery confirmation.</small>
+                        </div>
+                    </div>
+
+                    <div class="card-premium p-0 overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4">Order #</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Payment</th>
+                                        <th>Total</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -201,41 +307,52 @@
                 <!-- SECTION: WITHDRAWALS -->
                 <div id="section-withdrawals" class="section">
                     <h2 class="fw-bold mb-4">Withdrawal Requests</h2>
-                    <div class="alert alert-info">
+                    <div class="alert alert-info shadow-sm border-0">
                         <i class="fas fa-info-circle me-2"></i>
                         These are requests from vendors to withdraw their wallet balance. Please manually transfer the funds to the bank details below and then click "Mark Sent".
                     </div>
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Vendor</th>
-                                            <th>Amount</th>
-                                            <th>Bank Details</th>
-                                            <th>Date</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="withdrawals-table">
-                                        <!-- Populated via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div id="no-withdrawals" class="text-center py-5 d-none">
-                                <p class="text-muted">No pending withdrawal requests.</p>
-                            </div>
+                    <div class="card-premium p-0 overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4">Vendor</th>
+                                        <th>Amount</th>
+                                        <th>Bank Details</th>
+                                        <th>Date</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="withdrawals-table">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="no-withdrawals" class="text-center py-5 d-none">
+                            <p class="text-muted">No pending withdrawal requests.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- SECTION: ESCROW (Existing) -->
+                <!-- SECTION: ESCROW -->
                 <div id="section-escrow" class="section">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h2 class="fw-bold mb-1">Escrow Management</h2>
                             <p class="text-muted mb-0">Monitor and release funds held in trust.</p>
+                        </div>
+                    </div>
+
+                    <!-- Escrow Info Card -->
+                    <div class="card-premium escrow-card p-4 mb-4">
+                        <div class="d-flex align-items-start">
+                            <div class="bg-warning bg-opacity-25 p-3 rounded-circle me-3">
+                                <i class="fas fa-shield-alt text-warning fa-lg"></i>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold mb-1">Escrow Status</h5>
+                                <p class="mb-0 text-dark opacity-75">Funds are held for 3 days to allow returns, then released after delivery confirmation.</p>
+                            </div>
                         </div>
                     </div>
 
@@ -292,14 +409,14 @@
                                 <div class="d-flex justify-content-between align-items-center mb-4">
                                     <div>
                                         <h5 class="fw-bold mb-1">Escrow Settlement</h5>
-                                        <p class="text-muted small mb-0">Release funds to vendors for orders delivered over 3 days ago with no active returns.</p>
+                                        <p class="text-muted small mb-0">Release funds to vendors for orders delivered over 3 days ago.</p>
                                     </div>
-                                    <button id="process-btn" class="btn btn-primary px-4 py-2 fw-bold shadow-sm">
+                                    <button id="process-btn" class="btn btn-primary px-4 py-2 fw-bold shadow-sm rounded-pill" onclick="processEscrow()">
                                         <i class="fas fa-sync-alt me-2"></i> Run Settlement Batch
                                     </button>
                                 </div>
                                 
-                                <div id="process-result" class="alert alert-info d-none">
+                                <div id="process-result" class="alert alert-info d-none rounded-3">
                                     <i class="fas fa-info-circle me-2"></i> <span id="process-msg"></span>
                                 </div>
 
@@ -349,84 +466,92 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            loadNav();
-            
-            // Security Check
-            const userStr = localStorage.getItem('user');
-            if (!userStr) {
-                window.location.href = 'login.html';
-                return;
-            }
-            const user = JSON.parse(userStr);
-            if (user.role !== 'admin') {
-                alert('Access Denied: Admin privileges required.');
-                window.location.href = 'index.html';
-                return;
-            }
-
-            loadDashboardStats();
-            document.getElementById('process-btn').addEventListener('click', processEscrow);
-        });
-
-        // SPA Navigation
-        function showSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
-
-            // Show selected
-            document.getElementById(`section-${sectionId}`).classList.add('active');
-            document.getElementById(`nav-${sectionId}`).classList.add('active');
-
-            // Load Data based on section
-            if (sectionId === 'users') loadUsers();
-            if (sectionId === 'verifications') loadVerifications();
-            if (sectionId === 'orders') loadOrders();
-            if (sectionId === 'escrow') loadEscrowStats();
-            if (sectionId === 'dashboard') loadDashboardStats();
-            if (sectionId === 'withdrawals') loadWithdrawals();
+        // Check Admin
+        const currentUser = JSON.parse(localStorage.getItem('user'));
+        if (!currentUser || currentUser.role !== 'admin') {
+            window.location.href = 'login.html';
         }
 
-        async function loadWithdrawals() {
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('dashboard');
+            loadStats();
+            loadVerifications();
+            loadWithdrawals();
+            loadEscrowStats();
+        });
+
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('section-' + sectionId).classList.add('active');
+            document.getElementById('nav-' + sectionId).classList.add('active');
+            
+            if (sectionId === 'users') loadUsers('all');
+            if (sectionId === 'orders') loadOrders();
+            if (sectionId === 'escrow') loadEscrowStats();
+            if (sectionId === 'withdrawals') loadWithdrawals();
+
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.remove('show');
+                document.querySelector('.sidebar-overlay').classList.remove('show');
+            }
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.querySelector('.sidebar-overlay').classList.toggle('show');
+        }
+
+        // --- DASHBOARD ---
+        async function loadStats() {
             try {
-                const res = await fetch('/api/admin/withdrawals');
-                const requests = await res.json();
+                const res = await fetch('/api/admin/stats');
+                const stats = await res.json();
+                
+                document.getElementById('stat-users').innerText = stats.users;
+                document.getElementById('stat-vendors').innerText = stats.vendors;
+                document.getElementById('stat-orders').innerText = stats.orders;
+                document.getElementById('stat-escrow').innerText = '₦' + Number(stats.escrow_held || 0).toLocaleString();
 
-                const tbody = document.getElementById('withdrawals-table');
-                const badge = document.getElementById('nav-badge-withdraw');
+                if(stats.pending_verifications > 0) {
+                    document.getElementById('pending-alert').style.setProperty('display', 'flex', 'important');
+                    document.getElementById('pending-count-alert').innerText = stats.pending_verifications;
+                    document.getElementById('nav-badge-verify').innerText = stats.pending_verifications;
+                    document.getElementById('nav-badge-verify').style.display = 'inline-block';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
 
-                if (requests.length > 0) {
-                    badge.innerText = requests.length;
-                    badge.style.display = 'inline-block';
-                    document.getElementById('no-withdrawals').classList.add('d-none');
-                } else {
-                    badge.style.display = 'none';
-                    document.getElementById('no-withdrawals').classList.remove('d-none');
-                    tbody.innerHTML = '';
+        // --- VERIFICATIONS ---
+        async function loadVerifications() {
+            try {
+                const res = await fetch('/api/admin/verifications');
+                const users = await res.json();
+                const tbody = document.getElementById('verifications-table');
+                
+                if (users.length === 0) {
+                    document.getElementById('no-verifications').classList.remove('d-none');
                     return;
                 }
 
-                tbody.innerHTML = requests.map(r => `
+                tbody.innerHTML = users.map(u => `
                     <tr>
-                        <td>
-                            <div class="fw-bold">${r.username}</div>
-                            <div class="small text-muted">${r.email}</div>
+                        <td class="ps-4">
+                            <div class="fw-bold">${u.name}</div>
+                            <small class="text-muted">${u.email}</small>
                         </td>
-                        <td class="fw-bold text-danger">${formatCurrency(r.amount)}</td>
                         <td>
-                            <div><strong>Bank:</strong> ${r.bank_name || 'N/A'}</div>
-                            <div><strong>Acc:</strong> <span class="font-monospace">${r.account_number || 'N/A'}</span></div>
-                            <div class="small text-muted">${r.account_name || ''}</div>
+                            <div>CAC: ${u.cac_number || 'N/A'}</div>
+                            <div>Phone: ${u.phone}</div>
                         </td>
-                        <td>${new Date(r.created_at).toLocaleDateString()}</td>
+                        <td>${u.address || 'N/A'}</td>
                         <td>
-                            <button onclick="processWithdrawal(${r.id}, 'completed')" class="btn btn-sm btn-success me-1">
-                                <i class="fas fa-check me-1"></i> Mark Sent
-                            </button>
-                            <button onclick="processWithdrawal(${r.id}, 'rejected')" class="btn btn-sm btn-outline-danger">
-                                <i class="fas fa-times me-1"></i> Reject
-                            </button>
+                            <button onclick="verifyUser(${u.id}, 'approve')" class="btn btn-sm btn-success rounded-pill me-1"><i class="fas fa-check"></i> Approve</button>
+                            <button onclick="verifyUser(${u.id}, 'reject')" class="btn btn-sm btn-outline-danger rounded-pill"><i class="fas fa-times"></i> Reject</button>
                         </td>
                     </tr>
                 `).join('');
@@ -435,266 +560,115 @@
             }
         }
 
-        async function processWithdrawal(id, status) {
-            let note = '';
-            if (status === 'rejected') {
-                note = prompt("Please provide a reason for rejection:");
-                if (note === null) return; // Cancelled
-                if (note.trim() === '') {
-                    alert("A reason is required to reject a withdrawal.");
-                    return;
-                }
-            } else {
-                if (!confirm(`Are you sure you want to mark this withdrawal as ${status}?`)) return;
-            }
-
+        async function verifyUser(id, action) {
+            if(!confirm(`${action === 'approve' ? 'Approve' : 'Reject'} this vendor?`)) return;
             try {
-                const res = await fetch(`/api/admin/withdrawals/${id}`, {
+                const res = await fetch('/api/admin/verify', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status, admin_note: note })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user_id: id, action })
                 });
-
-                if (res.ok) {
-                    alert(`Withdrawal ${status} successfully`);
-                    loadWithdrawals();
-                } else {
-                    const data = await res.json();
-                    alert(data.error || 'Failed to update withdrawal');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Error processing withdrawal');
-            }
-        }
-
-        async function loadDashboardStats() {
-            try {
-                const res = await fetch('/api/admin/dashboard-stats');
                 const data = await res.json();
-
-                document.getElementById('stat-users').innerText = data.users;
-                document.getElementById('stat-vendors').innerText = data.vendors;
-                document.getElementById('stat-orders').innerText = data.orders;
-                document.getElementById('stat-escrow').innerText = formatCurrency(data.escrow_held);
-                
-                if (data.pending_verifications > 0) {
-                    document.getElementById('pending-alert').style.setProperty('display', 'flex', 'important');
-                    document.getElementById('pending-count-alert').innerText = data.pending_verifications;
-                    document.getElementById('nav-badge-verify').style.display = 'inline-block';
-                    document.getElementById('nav-badge-verify').innerText = data.pending_verifications;
+                if(data.success) {
+                    loadVerifications();
+                    loadStats();
                 } else {
-                    document.getElementById('pending-alert').style.setProperty('display', 'none', 'important');
-                    document.getElementById('nav-badge-verify').style.display = 'none';
+                    alert('Error: ' + data.error);
                 }
-
-            } catch (err) {
+            } catch(err) {
                 console.error(err);
             }
         }
 
-        async function loadUsers(role = 'all', btn = null) {
-            if (btn) {
-                btn.parentElement.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+        // --- USERS ---
+        async function loadUsers(filter, btn) {
+            if(btn) {
+                document.querySelectorAll('#section-users .btn-group .btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
             }
-            
-            const url = role === 'all' ? '/api/admin/users' : `/api/admin/users?role=${role}`;
-            
             try {
-                const res = await fetch(url);
-                const users = await res.json();
+                const res = await fetch('/api/admin/users');
+                let users = await res.json();
+                if(filter !== 'all') {
+                    users = users.filter(u => u.role === filter);
+                }
                 
                 const tbody = document.getElementById('users-table');
                 tbody.innerHTML = users.map(u => `
                     <tr>
-                        <td>
-                            <div class="fw-bold">${u.username}</div>
-                            <div class="small text-muted">ID: ${u.id}</div>
-                        </td>
-                        <td><span class="badge bg-${u.role === 'admin' ? 'danger' : (u.role === 'vendor' ? 'info' : 'secondary')}">${u.role.toUpperCase()}</span></td>
+                        <td class="ps-4 fw-bold">${u.name}</td>
+                        <td><span class="badge bg-${u.role === 'admin' ? 'danger' : (u.role === 'vendor' ? 'primary' : 'secondary')} rounded-pill px-3">${u.role}</span></td>
                         <td>
                             <div>${u.email}</div>
-                            <div class="small text-muted">${u.phone || '-'}</div>
+                            <small class="text-muted">${u.phone || ''}</small>
                         </td>
-                        <td>
-                            ${u.is_verified ? '<span class="badge bg-success">Verified</span>' : '<span class="badge bg-warning text-dark">Unverified</span>'}
-                        </td>
+                        <td>${u.is_verified ? '<span class="text-success"><i class="fas fa-check-circle"></i> Verified</span>' : '<span class="text-muted">Unverified</span>'}</td>
                         <td>${new Date(u.created_at).toLocaleDateString()}</td>
                     </tr>
                 `).join('');
-            } catch (err) {
+            } catch(err) {
                 console.error(err);
             }
         }
 
-        async function loadVerifications() {
-            // Fetch users with role='vendor'
-            try {
-                const res = await fetch('/api/admin/users?role=vendor');
-                const vendors = await res.json();
-                const pending = vendors.filter(v => v.is_verified === 0);
-
-                const tbody = document.getElementById('verifications-table');
-                if (pending.length === 0) {
-                    document.getElementById('no-verifications').classList.remove('d-none');
-                    tbody.innerHTML = '';
-                    return;
-                }
-                
-                document.getElementById('no-verifications').classList.add('d-none');
-                tbody.innerHTML = pending.map(v => `
-                    <tr>
-                        <td>
-                            <div class="fw-bold">${v.username}</div>
-                            <div class="small text-muted">${v.email}</div>
-                        </td>
-                        <td>
-                            <div><strong>Shop:</strong> ${v.shop_address || 'N/A'}</div>
-                            <div><strong>CAC:</strong> ${v.cac_number || 'N/A'}</div>
-                        </td>
-                        <td>Lagos (Placeholder)</td>
-                        <td>
-                            <button onclick="verifyVendor(${v.id}, 'approve')" class="btn btn-sm btn-success me-1">Approve</button>
-                            <button onclick="verifyVendor(${v.id}, 'reject')" class="btn btn-sm btn-outline-danger">Reject</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        async function verifyVendor(id, action) {
-            if (!confirm(`Are you sure you want to ${action} this vendor?`)) return;
-
-            try {
-                const res = await fetch('/api/admin/verify-vendor', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: id, action })
-                });
-                
-                if (res.ok) {
-                    alert('Vendor updated successfully');
-                    loadVerifications();
-                    loadDashboardStats(); // Refresh badges
-                } else {
-                    alert('Failed to update vendor');
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
+        // --- ORDERS ---
         async function loadOrders() {
             try {
                 const res = await fetch('/api/admin/orders');
                 const orders = await res.json();
-                
                 const tbody = document.getElementById('orders-table');
+                
                 tbody.innerHTML = orders.map(o => `
                     <tr>
-                        <td><span class="fw-bold text-primary">${o.order_number}</span></td>
-                        <td>${o.customer_name || 'Customer'}</td>
+                        <td class="ps-4 fw-bold">#${o.order_number}</td>
+                        <td>${o.buyer_name}</td>
                         <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                        <td><span class="badge bg-${getStatusColor(o.status)} rounded-pill px-3">${o.status}</span></td>
+                        <td>${getEscrowBadge(o)}</td>
+                        <td>₦${Number(o.total_amount).toLocaleString()}</td>
                         <td>
-                            <span class="badge bg-${getStatusColor(o.status)}">${o.status.toUpperCase()}</span>
-                        </td>
-                        <td>
-                            <span class="badge bg-${o.payment_status === 'paid' ? 'success' : 'warning'} text-dark">${o.payment_status.toUpperCase()}</span>
-                        </td>
-                        <td class="fw-bold">${formatCurrency(o.total_amount)}</td>
-                        <td>
-                            ${o.payment_status !== 'paid' ? 
-                                `<button onclick="confirmPayment(${o.id})" class="btn btn-sm btn-outline-success">
-                                    <i class="fas fa-check me-1"></i> Confirm Payment
-                                </button>` : 
-                                (o.payout_status !== 'completed' ? 
-                                    `<button onclick="releasePayout(${o.id})" class="btn btn-sm btn-outline-primary" title="Release funds to vendor">
-                                        <i class="fas fa-wallet me-1"></i> Release
-                                     </button>
-                                     <span class="text-success small ms-2"><i class="fas fa-check-circle"></i> Paid</span>` 
-                                    : 
-                                    '<span class="text-success small"><i class="fas fa-check-double"></i> Completed</span>'
-                                )
-                            }
+                            <button class="btn btn-sm btn-outline-primary rounded-pill" onclick="alert('Order Details coming soon')">View</button>
                         </td>
                     </tr>
                 `).join('');
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        async function releasePayout(orderId) {
-            if (!confirm('Are you sure you want to release funds to the vendor immediately? This overrides the standard Escrow waiting period.')) return;
-
-            try {
-                const res = await fetch(`/api/admin/orders/${orderId}/release`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                if (res.ok) {
-                    alert('Funds released to vendor wallet successfully.');
-                    loadOrders();
-                    loadEscrowStats();
-                } else {
-                    const data = await res.json();
-                    alert(data.error || 'Failed to release funds');
-                }
-            } catch (err) {
-                console.error(err);
-                alert('Error releasing funds');
-            }
-        }
-
-        async function confirmPayment(orderId) {
-            if (!confirm('Confirm that you have received payment for this order? This will secure the funds in Escrow.')) return;
-
-            try {
-                const res = await fetch(`/api/admin/orders/${orderId}/payment`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'paid' })
-                });
-
-                if (res.ok) {
-                    loadOrders();
-                    loadEscrowStats(); // Refresh escrow stats
-                } else {
-                    alert('Failed to update payment status');
-                }
-            } catch (err) {
+            } catch(err) {
                 console.error(err);
             }
         }
 
         function getStatusColor(status) {
-            if (status === 'delivered') return 'success';
-            if (status === 'shipped') return 'info';
-            if (status === 'processing') return 'warning';
-            if (status === 'cancelled') return 'danger';
-            return 'secondary';
+            switch(status) {
+                case 'pending': return 'warning text-dark';
+                case 'shipped': return 'info text-dark';
+                case 'delivered': return 'success';
+                case 'cancelled': return 'danger';
+                default: return 'secondary';
+            }
         }
 
-        // Reused Escrow Functions
+        function getEscrowBadge(o) {
+            if (o.payment_status === 'paid') {
+                return '<span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3"><i class="fas fa-check-circle me-1"></i> Released</span>';
+            } else if (o.status === 'delivered') {
+                return '<span class="badge bg-warning bg-opacity-10 text-warning rounded-pill px-3"><i class="fas fa-clock me-1"></i> In 3-Day Window</span>';
+            } else {
+                 return '<span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3"><i class="fas fa-lock me-1"></i> Held</span>';
+            }
+        }
+
+        // --- ESCROW ---
         async function loadEscrowStats() {
             try {
                 const res = await fetch('/api/admin/escrow-stats');
                 const data = await res.json();
-
-                document.getElementById('held-total').innerText = formatCurrency(data.totalHeld);
                 
-                document.getElementById('window-total').innerText = formatCurrency(data.inWindow.total);
-                document.getElementById('window-count').innerText = `${data.inWindow.count} orders delivered recently`;
-
-                document.getElementById('pending-total').innerText = formatCurrency(data.pendingPayouts.total);
-                document.getElementById('pending-count').innerText = `${data.pendingPayouts.count} orders matured`;
-
+                document.getElementById('held-total').innerText = '₦' + Number(data.held_total).toLocaleString();
+                document.getElementById('window-total').innerText = '₦' + Number(data.window_total).toLocaleString();
+                document.getElementById('window-count').innerText = `${data.window_count} orders delivered recently`;
+                document.getElementById('pending-total').innerText = '₦' + Number(data.pending_payout_total).toLocaleString();
+                document.getElementById('pending-count').innerText = `${data.pending_payout_count} orders matured`;
             } catch (err) {
-                console.error('Failed to load stats', err);
+                console.error(err);
             }
         }
 
@@ -731,8 +705,61 @@
             }
         }
 
-        function formatCurrency(amount) {
-            return '₦' + Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        // --- WITHDRAWALS ---
+        async function loadWithdrawals() {
+            try {
+                const res = await fetch('/api/admin/withdrawals');
+                const requests = await res.json();
+                const tbody = document.getElementById('withdrawals-table');
+                
+                if (requests.length === 0) {
+                    document.getElementById('no-withdrawals').classList.remove('d-none');
+                    document.getElementById('nav-badge-withdraw').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('nav-badge-withdraw').innerText = requests.length;
+                document.getElementById('nav-badge-withdraw').style.display = 'inline-block';
+
+                tbody.innerHTML = requests.map(r => `
+                    <tr>
+                        <td class="ps-4 fw-bold">${r.vendor_name}</td>
+                        <td>₦${Number(r.amount).toLocaleString()}</td>
+                        <td>
+                            <div class="small text-muted">${r.bank_name}</div>
+                            <div class="fw-bold">${r.account_number}</div>
+                            <div class="small">${r.account_name}</div>
+                        </td>
+                        <td>${new Date(r.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <button onclick="processWithdrawal(${r.id}, 'approve')" class="btn btn-sm btn-success rounded-pill me-1"><i class="fas fa-check"></i> Mark Sent</button>
+                            <button onclick="processWithdrawal(${r.id}, 'reject')" class="btn btn-sm btn-outline-danger rounded-pill"><i class="fas fa-times"></i> Refund</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function processWithdrawal(id, action) {
+            if(!confirm(action === 'approve' ? 'Confirm you have manually sent the funds?' : 'Reject and refund to wallet?')) return;
+            
+            try {
+                const res = await fetch(`/api/admin/withdrawals/${id}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ action })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    loadWithdrawals();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch(err) {
+                console.error(err);
+            }
         }
     </script>
 </body>
