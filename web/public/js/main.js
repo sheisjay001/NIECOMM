@@ -178,12 +178,31 @@ function checkAuth() {
 
     // Redirect logged-in users away from homepage
     const path = window.location.pathname;
+    
+    // Homepage redirection
     if (path === '/' || path.endsWith('index.html') || path.endsWith('/')) {
          let dashboardLink = 'user_dashboard.html';
          if (user.role === 'vendor') dashboardLink = 'vendor_dashboard.html';
          if (user.role === 'admin') dashboardLink = 'admin_dashboard.html';
          window.location.href = dashboardLink;
          return user;
+    }
+
+    // Role-based Dashboard Protection
+    if (path.includes('user_dashboard.html') && user.role !== 'user') {
+        if (user.role === 'admin') window.location.href = 'admin_dashboard.html';
+        else if (user.role === 'vendor') window.location.href = 'vendor_dashboard.html';
+        return user;
+    }
+    if (path.includes('vendor_dashboard.html') && user.role !== 'vendor') {
+        if (user.role === 'admin') window.location.href = 'admin_dashboard.html';
+        else window.location.href = 'user_dashboard.html';
+        return user;
+    }
+    if (path.includes('admin_dashboard.html') && user.role !== 'admin') {
+        if (user.role === 'vendor') window.location.href = 'vendor_dashboard.html';
+        else window.location.href = 'user_dashboard.html';
+        return user;
     }
 
     if (authButtons) {
