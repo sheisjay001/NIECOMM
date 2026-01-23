@@ -759,8 +759,9 @@ app.get('/api/vendor/dashboard', async (req, res) => {
         const conn = await getDb();
         
         // Get Vendor Info
-        const [userRows] = await conn.execute('SELECT is_verified FROM users WHERE id = ?', [userId]);
+        const [userRows] = await conn.execute('SELECT is_verified, shop_address, cac_number FROM users WHERE id = ?', [userId]);
         const isVerified = userRows.length > 0 ? userRows[0].is_verified : 0;
+        const userInfo = userRows[0] || {};
 
         // Product Count
         const [prodRows] = await conn.execute('SELECT COUNT(*) as count FROM products WHERE vendor_id = ?', [userId]);
@@ -794,11 +795,58 @@ app.get('/api/vendor/dashboard', async (req, res) => {
         const avgRating = ratingRows[0].avg_rating || 0;
 
         // Verification Status
-        const [verRows] = await conn.execute('SELECT status, created_at FROM vendor_verifications WHERE user_id = ? ORDER BY id DESC LIMIT 1', [userId]);
+        const [verRows] = await conn.execute('SELECT status, created_at, documents FROM vendor_verifications WHERE user_id = ? ORDER BY id DESC LIMIT 1', [userId]);
         const verification = verRows.length > 0 ? verRows[0] : null;
 
+        // Wallet Balance & Total Revenue
+                const [credits] = await conn.query("SELECT SUM(amount) as total FROM wallet_transactions WHERE user_id = ? AND type = 'credit' AND status = 'completed'", [userId]);
+                const [debits] = await conn.query("SELECT SUM(amount) as total FROM wallet_transactions WHERE user_id = ? AND type = 'debit' AND status = 'completed'", [userId]);
+                const walletBalance = (credits[0].total || 0) - (debits[0].total || 0);
+                const totalRevenue = credits[0].total || 0; // Total lifetime earnings
+
+                // Monthly Revenue
+                const [monthCredits] = await conn.query("SELECT SUM(amount) as total FROM wallet_transactions WHERE user_id = ? AND type = 'credit' AND status = 'completed' AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())", [userId]);
+                const monthRevenue = monthCredits[0].total || 0;
+
+                // Escrow Balance (Funds held in orders not yet completed)
+                // Assuming 'held' payment status means funds are with Admin/Escrow
+                const [escrowRows] = await conn.execute(`
+                    SELECT SUM(oi.price * oi.quantity) as total 
+                    FROM order_items oi
+                    JOIN orders o ON oi.order_id = o.id
+                    JOIN products p ON oi.product_id = p.id
+                    WHERE p.vendor_id = ? AND o.payment_status = 'held'
+                `, [userId]);
+                const escrowBalance = escrowRows[0].total || 0;
+
+                // Recent Orders (Last 5)
+        const [recentOrders] = await conn.execute(`
+            SELECT o.id, o.order_number, o.status, o.created_at,
+                   SUM(oi.price * oi.quantity) as total_amount
+            FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            WHERE p.vendor_id = ?
+            GROUP BY o.id
+            ORDER BY o.created_at DESC
+            LIMIT 5
+        `, [userId]);
+
         await conn.end();
-        res.json({ isVerified, productCount, verification, salesCount, pendingReturns, avgRating });
+        res.json({ 
+            isVerified, 
+            productCount, 
+            salesCount, 
+            pendingReturns, 
+            avgRating, 
+            verification, 
+            walletBalance, 
+            totalRevenue, 
+            monthRevenue,
+            escrowBalance,
+            recentOrders,
+            userInfo
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -812,7 +860,13 @@ app.get('/api/vendor/products', async (req, res) => {
 
     try {
         const conn = await getDb();
-        const [rows] = await conn.execute('SELECT * FROM products WHERE vendor_id = ? ORDER BY created_at DESC', [userId]);
+        const [rows] = await conn.execute(`
+            SELECT p.*, 
+                   COALESCE((SELECT SUM(quantity) FROM order_items WHERE product_id = p.id), 0) as sales_count 
+            FROM products p 
+            WHERE vendor_id = ? 
+            ORDER BY created_at DESC
+        `, [userId]);
         await conn.end();
         res.json(rows);
     } catch (err) {
@@ -1343,22 +1397,52 @@ app.get('/api/vendor/orders', async (req, res) => {
 
     try {
         const conn = await getDb();
-        // Join orders and order_items to find orders containing vendor's products
-        // Group by order to aggregate items for this vendor
+        // Fetch all items for this vendor's orders, joined with customer info
         const [rows] = await conn.execute(`
-            SELECT o.id, o.order_number, o.status, o.payment_status, o.created_at,
-                   GROUP_CONCAT(CONCAT(oi.quantity, 'x ', p.name) SEPARATOR ', ') as items_summary,
-                   SUM(oi.price * oi.quantity) as vendor_total
+            SELECT o.id as order_id, o.order_number, o.status, o.payment_status, o.created_at, o.shipping_address,
+                   u.username as customer_name, u.email as customer_email, u.phone as customer_phone,
+                   p.name as product_name, oi.quantity, oi.price
             FROM orders o
             JOIN order_items oi ON o.id = oi.order_id
             JOIN products p ON oi.product_id = p.id
+            JOIN users u ON o.customer_id = u.id
             WHERE p.vendor_id = ?
-            GROUP BY o.id
             ORDER BY o.created_at DESC
         `, [userId]);
         
         await conn.end();
-        res.json(rows);
+
+        // Group by Order
+        const ordersMap = new Map();
+
+        rows.forEach(row => {
+            if (!ordersMap.has(row.order_id)) {
+                ordersMap.set(row.order_id, {
+                    id: row.order_id,
+                    order_number: row.order_number,
+                    status: row.status,
+                    payment_status: row.payment_status,
+                    created_at: row.created_at,
+                    shipping_address: row.shipping_address,
+                    customer: {
+                        name: row.customer_name,
+                        email: row.customer_email,
+                        phone: row.customer_phone
+                    },
+                    items: [],
+                    total_amount: 0
+                });
+            }
+            const order = ordersMap.get(row.order_id);
+            order.items.push({
+                name: row.product_name,
+                quantity: row.quantity,
+                price: row.price
+            });
+            order.total_amount += (row.price * row.quantity);
+        });
+
+        res.json(Array.from(ordersMap.values()));
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -1487,11 +1571,25 @@ app.get('/api/wallet', async (req, res) => {
         
         const balance = (credits[0].total || 0) - (debits[0].total || 0);
 
+        // Monthly Revenue
+        const [monthCredits] = await db.query("SELECT SUM(amount) as total FROM wallet_transactions WHERE user_id = ? AND type = 'credit' AND status = 'completed' AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())", [userId]);
+        const monthRevenue = monthCredits[0].total || 0;
+
+        // Escrow Balance (Funds held in orders not yet completed)
+        const [escrowRows] = await db.execute(`
+            SELECT SUM(oi.price * oi.quantity) as total 
+            FROM order_items oi
+            JOIN orders o ON oi.order_id = o.id
+            JOIN products p ON oi.product_id = p.id
+            WHERE p.vendor_id = ? AND o.payment_status = 'held'
+        `, [userId]);
+        const escrowBalance = escrowRows[0].total || 0;
+
         // Get Transactions
         const [transactions] = await db.query("SELECT * FROM wallet_transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50", [userId]);
 
         await db.end();
-        res.json({ balance, transactions });
+        res.json({ balance, transactions, monthRevenue, escrowBalance });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

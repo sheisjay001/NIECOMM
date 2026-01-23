@@ -204,33 +204,70 @@
 
                     <!-- Stats Cards -->
                     <div class="row g-4 mb-4">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
+                            <div class="card-premium h-100 p-4 bg-primary text-white">
+                                <p class="text-white-50 small mb-1">Wallet Balance</p>
+                                <h3 class="fw-bold mb-0">₦<span id="dash-wallet-balance">0.00</span></h3>
+                                <small class="text-white-50"><i class="fas fa-wallet"></i> Available</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card-premium h-100 p-4">
+                                <p class="text-muted small mb-1">Total Revenue</p>
+                                <h3 class="fw-bold mb-0">₦<span id="dash-total-revenue">0.00</span></h3>
+                                <small class="text-success"><i class="fas fa-chart-line"></i> Lifetime Earnings</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
                             <div class="card-premium h-100 p-4">
                                 <p class="text-muted small mb-1">Total Orders</p>
                                 <h3 class="fw-bold mb-0" id="sales-count">0</h3>
-                                <small class="text-success"><i class="fas fa-arrow-up"></i> Sales</small>
+                                <small class="text-success"><i class="fas fa-shopping-bag"></i> Items Sold</small>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="card-premium h-100 p-4">
                                 <p class="text-muted small mb-1">Total Products</p>
                                 <h3 class="fw-bold mb-0" id="prod-count">0</h3>
-                                <small class="text-primary"><a onclick="showSection('products')" style="cursor:pointer; text-decoration:none">Manage</a></small>
+                                <small class="text-primary"><a onclick="showSection('products')" style="cursor:pointer; text-decoration:none">Manage Inventory</a></small>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="card-premium h-100 p-4">
                                 <p class="text-muted small mb-1">Pending Returns</p>
                                 <h3 class="fw-bold mb-0" id="return-count">0</h3>
                                 <small class="text-danger">Action required</small>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="card-premium h-100 p-4">
                                 <p class="text-muted small mb-1">Store Rating</p>
                                 <h3 class="fw-bold mb-0" id="avg-rating">0.0</h3>
                                 <small class="text-warning"><i class="fas fa-star"></i> Average</small>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Orders -->
+                    <div class="card-premium p-4 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0">Recent Orders</h5>
+                            <a onclick="showSection('orders')" class="btn btn-sm btn-outline-primary rounded-pill">View All</a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-3">Order #</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th class="text-end pe-3">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dash-recent-orders">
+                                    <tr><td colspan="4" class="text-center py-3">Loading...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -601,46 +638,85 @@
         // --- DASHBOARD ---
         async function loadDashboardStats() {
             try {
-                // Get products count
-                const resProd = await fetch(`/api/vendor/products?user_id=${currentUser.id}`);
-                const products = await resProd.json();
-                document.getElementById('prod-count').innerText = products.length;
+                const res = await fetch(`/api/vendor/dashboard?user_id=${currentUser.id}`);
+                const data = await res.json();
 
-                // Get orders stats
-                const resOrders = await fetch(`/api/vendor/orders?user_id=${currentUser.id}`);
-                const orders = await resOrders.json();
-                document.getElementById('sales-count').innerText = orders.length;
+                // Stats Cards
+                document.getElementById('dash-wallet-balance').innerText = Number(data.walletBalance || 0).toLocaleString(undefined, {minimumFractionDigits: 2});
+                document.getElementById('dash-total-revenue').innerText = Number(data.totalRevenue || 0).toLocaleString(undefined, {minimumFractionDigits: 2});
+                document.getElementById('sales-count').innerText = data.salesCount || 0;
+                document.getElementById('prod-count').innerText = data.productCount || 0;
+                document.getElementById('return-count').innerText = data.pendingReturns || 0;
+                document.getElementById('avg-rating').innerText = Number(data.avgRating || 0).toFixed(1);
 
-                // Returns (mock)
-                document.getElementById('return-count').innerText = '0';
+                // Verification Status Update
+                const ver = data.verification;
+                if (data.isVerified) {
+                    document.getElementById('ver-status').textContent = 'Verified';
+                    document.getElementById('ver-status').className = 'mb-0 fw-bold text-uppercase text-success';
+                    document.getElementById('ver-icon').innerHTML = '<i class="fas fa-check-circle text-success fa-2x"></i>';
+                } else if (ver && ver.status === 'pending') {
+                    document.getElementById('ver-status').textContent = 'Pending Review';
+                    document.getElementById('ver-status').className = 'mb-0 fw-bold text-uppercase text-warning';
+                    document.getElementById('ver-icon').innerHTML = '<i class="fas fa-clock text-warning fa-2x"></i>';
+                } else if (ver && ver.status === 'rejected') {
+                    document.getElementById('ver-status').textContent = 'Rejected';
+                    document.getElementById('ver-status').className = 'mb-0 fw-bold text-uppercase text-danger';
+                    document.getElementById('ver-icon').innerHTML = '<i class="fas fa-times-circle text-danger fa-2x"></i>';
+                }
+
+                // Recent Orders
+                const ordersBody = document.getElementById('dash-recent-orders');
+                if (data.recentOrders && data.recentOrders.length > 0) {
+                    ordersBody.innerHTML = data.recentOrders.map(o => `
+                        <tr>
+                            <td class="ps-3 fw-bold">#${o.order_number}</td>
+                            <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                            <td><span class="badge bg-${getStatusColor(o.status)} rounded-pill px-2">${o.status}</span></td>
+                            <td class="text-end pe-3">₦${Number(o.total_amount).toLocaleString()}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    ordersBody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No recent orders</td></tr>';
+                }
+
+                // Sales Chart (Restored Mock)
+                const ctx = document.getElementById('salesChart');
+                if (ctx) {
+                    new Chart(ctx.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                            datasets: [{
+                                label: 'Sales (₦)',
+                                data: [0, 0, 0, 0, 0, 0, 0], // Placeholder for now
+                                borderColor: '#0d6efd',
+                                tension: 0.4,
+                                fill: true,
+                                backgroundColor: 'rgba(13, 110, 253, 0.1)'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
                 
-                // Rating (mock)
-                document.getElementById('avg-rating').innerText = '4.8';
-
-                // Chart
-                const ctx = document.getElementById('salesChart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                        datasets: [{
-                            label: 'Sales (₦)',
-                            data: [0, 0, 0, 0, 0, 0, 0], // Connect to real data later
-                            borderColor: '#0d6efd',
-                            tension: 0.4,
-                            fill: true,
-                            backgroundColor: 'rgba(13, 110, 253, 0.1)'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } }
-                    }
-                });
-
             } catch (err) {
-                console.error(err);
+                console.error('Error loading dashboard stats:', err);
+            }
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'pending': return 'warning text-dark';
+                case 'processing': return 'info text-white';
+                case 'shipped': return 'primary';
+                case 'delivered': return 'success';
+                case 'cancelled': return 'danger';
+                default: return 'secondary';
             }
         }
 

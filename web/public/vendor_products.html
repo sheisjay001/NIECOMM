@@ -73,12 +73,13 @@
                                         <th>Name</th>
                                         <th>Price</th>
                                         <th>Stock</th>
+                                        <th>Sales</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="products-body">
-                                    <tr><td colspan="6" class="text-center py-4">Loading products...</td></tr>
+                                    <tr><td colspan="7" class="text-center py-4">Loading products...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -193,6 +194,7 @@
                         <td class="fw-bold">${p.name}</td>
                         <td>₦${Number(p.price).toLocaleString()}</td>
                         <td>${p.quantity}</td>
+                        <td>${p.sales_count || 0}</td>
                         <td><span class="badge bg-success">Active</span></td>
                         <td>
                             <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${p.id})">

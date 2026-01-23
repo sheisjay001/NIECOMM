@@ -34,9 +34,61 @@
         </div>
     </section>
 
+    <!-- Order Details Modal -->
+    <div class="modal fade" id="orderDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Order Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Order Info</h6>
+                            <p class="mb-1"><strong>Order #:</strong> <span id="modal-order-number"></span></p>
+                            <p class="mb-1"><strong>Date:</strong> <span id="modal-order-date"></span></p>
+                            <p class="mb-1"><strong>Status:</strong> <span id="modal-order-status"></span></p>
+                        </div>
+                        <div class="col-md-6" id="modal-customer-section">
+                            <h6 class="fw-bold">Customer Info</h6>
+                            <p class="mb-1"><strong>Name:</strong> <span id="modal-cust-name"></span></p>
+                            <p class="mb-1"><strong>Phone:</strong> <span id="modal-cust-phone"></span></p>
+                            <p class="mb-1"><strong>Address:</strong> <span id="modal-cust-addr"></span></p>
+                        </div>
+                    </div>
+                    
+                    <h6 class="fw-bold">Items</h6>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Qty</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-items-body"></tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end">Total Amount:</th>
+                                <th id="modal-total-amount"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script>
+        let allOrders = []; // Store fetched orders
+
         document.addEventListener('DOMContentLoaded', async () => {
             loadNav();
             const user = checkAuth();
@@ -50,15 +102,15 @@
 
             try {
                 const res = await fetch(apiUrl);
-                const orders = await res.json();
+                allOrders = await res.json();
                 const tbody = document.getElementById('orders-body');
                 
-                if (orders.length === 0) {
+                if (allOrders.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No orders found.</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = orders.map(o => `
+                tbody.innerHTML = allOrders.map(o => `
                     <tr>
                         <td class="fw-bold">#${o.order_number}</td>
                         <td>₦${Number(o.total_amount).toLocaleString()}</td>
@@ -66,6 +118,10 @@
                         <td><span class="badge bg-light text-dark border">${o.payment_status}</span></td>
                         <td>${new Date(o.created_at).toLocaleDateString()}</td>
                         <td>
+                            <button class="btn btn-sm btn-primary me-1" onclick="viewDetails('${o.id}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+
                             ${o.status === 'delivered' && !isVendor ? 
                                 `<button class="btn btn-sm btn-outline-danger" onclick="requestReturn('${o.id}', '${o.order_number}')">Return</button>` 
                                 : ''}
@@ -79,8 +135,8 @@
                                 : ''}
                             
                             ${isVendor && o.status !== 'delivered' && o.status !== 'cancelled' ?
-                                `<div class="dropdown">
-                                  <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Update Status</button>
+                                `<div class="dropdown d-inline-block">
+                                  <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Status</button>
                                   <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="#" onclick="updateStatus('${o.id}', 'shipped')">Mark Shipped</a></li>
                                     <li><a class="dropdown-item" href="#" onclick="updateStatus('${o.id}', 'delivered')">Mark Delivered</a></li>
@@ -94,6 +150,59 @@
                 console.error(err);
             }
         });
+
+        function viewDetails(orderId) {
+            const order = allOrders.find(o => o.id == orderId); // Loose equality for string/int match
+            if (!order) return;
+
+            // Populate Modal
+            document.getElementById('modal-order-number').textContent = order.order_number;
+            document.getElementById('modal-order-date').textContent = new Date(order.created_at).toLocaleString();
+            
+            const statusBadge = document.getElementById('modal-order-status');
+            statusBadge.textContent = order.status.toUpperCase();
+            statusBadge.className = `badge bg-${getStatusColor(order.status)}`;
+
+            // Customer Info (Only for Vendors)
+            const custSection = document.getElementById('modal-customer-section');
+            if (order.customer) {
+                custSection.style.display = 'block';
+                document.getElementById('modal-cust-name').textContent = order.customer.name || 'N/A';
+                document.getElementById('modal-cust-phone').textContent = order.customer.phone || 'N/A';
+                document.getElementById('modal-cust-addr').textContent = order.shipping_address || 'N/A';
+            } else {
+                custSection.style.display = 'none';
+            }
+
+            // Items
+            const itemsBody = document.getElementById('modal-items-body');
+            itemsBody.innerHTML = '';
+            
+            let total = 0;
+            if (order.items && order.items.length > 0) {
+                order.items.forEach(item => {
+                    const lineTotal = item.price * item.quantity;
+                    total += lineTotal;
+                    itemsBody.innerHTML += `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>₦${Number(item.price).toLocaleString()}</td>
+                            <td>${item.quantity}</td>
+                            <td>₦${Number(lineTotal).toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                // Fallback if no items (e.g. user view currently)
+                itemsBody.innerHTML = '<tr><td colspan="4" class="text-center">Details not available</td></tr>';
+                total = order.total_amount;
+            }
+
+            document.getElementById('modal-total-amount').textContent = '₦' + Number(total).toLocaleString();
+
+            // Show Modal
+            new bootstrap.Modal(document.getElementById('orderDetailsModal')).show();
+        }
 
         async function confirmOrder(orderId, type) {
             const msg = type === 'receipt' 

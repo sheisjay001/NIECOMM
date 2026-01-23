@@ -87,8 +87,8 @@
                                 </div>
                             </div>
                             <div class="d-flex gap-3">
-                                <span class="badge bg-white text-primary rounded-pill px-3 py-2"><i class="fas fa-arrow-up me-1"></i> +₦0.00 this month</span>
-                                <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-2">Escrow: ₦0.00</span>
+                                <span class="badge bg-white text-primary rounded-pill px-3 py-2"><i class="fas fa-arrow-up me-1"></i> +₦<span id="month-revenue">0.00</span> this month</span>
+                                <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-2">Escrow: ₦<span id="escrow-balance">0.00</span></span>
                             </div>
                         </div>
                     </div>
@@ -191,6 +191,8 @@
                     
                     // Balance
                     document.getElementById('wallet-balance').textContent = Number(data.balance).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+                    document.getElementById('month-revenue').textContent = Number(data.monthRevenue || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 });
+                    document.getElementById('escrow-balance').textContent = Number(data.escrowBalance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 });
                     
                     // Transactions
                     const tbody = document.getElementById('transaction-list');
