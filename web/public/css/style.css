@@ -267,102 +267,91 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
-/* Mobile Responsiveness */
+/* --- Mobile Optimizations (Extreme) --- */
 @media (max-width: 768px) {
-    .display-1 {
-        font-size: 3rem !important;
+    /* Typography & Touch Targets */
+    html, body {
+        font-size: 16px; /* Prevents zooming */
+        overflow-x: hidden;
     }
 
-    .hero-premium {
-        min-height: auto;
-        padding-top: 6rem; /* Account for fixed nav */
-        padding-bottom: 3rem;
-        text-align: center;
+    input, select, textarea, button {
+        font-size: 16px !important; /* iOS zoom prevention */
+        min-height: 44px; /* Minimum touch target */
     }
 
-    .hero-premium h1 {
-        font-size: 2.8rem;
-    }
-    
-    .hero-premium .d-flex.gap-3 {
-        flex-direction: column;
-        gap: 1rem !important;
-        align-items: center;
+    /* Container Spacing */
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
-    .hero-premium .col-lg-7, 
-    .hero-premium .col-lg-5 {
-        margin-bottom: 2rem;
+    /* Headings */
+    h1, .display-1, .display-2, .display-3 {
+        font-size: 2.5rem !important;
     }
+    h2 { font-size: 1.75rem !important; }
+    h3 { font-size: 1.5rem !important; }
 
-    .hero-premium .btn-premium-primary, 
-    .hero-premium .btn-premium-outline {
-        width: 100%;
-        max-width: 300px;
-        justify-content: center;
-    }
-
-    .hero-glow {
-        width: 300px;
-        height: 300px;
-        opacity: 0.6;
-    }
-
-    .navbar-premium {
-        padding: 0.5rem 0;
-    }
-
-    /* Adjust Bento Grid heights on mobile */
-    .bento-item {
-        min-height: 250px;
-        padding: 25px;
-    }
-
-    .product-image-container {
-        height: auto; /* Let aspect-ratio handle it */
-        aspect-ratio: 1/1;
-    }
-
-    /* Product Grid: 2 columns with smaller gap */
+    /* Grid Gaps */
     .row.g-4 {
-        --bs-gutter-x: 1rem;
         --bs-gutter-y: 1rem;
+        --bs-gutter-x: 0.75rem;
     }
 
-    /* Utility */
-    .small-md {
-        font-size: 0.85rem;
+    /* Mobile Bottom Nav (Enhanced) */
+    .mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-around;
+        padding: 0.75rem 0.5rem calc(0.75rem + env(safe-area-inset-bottom));
+        z-index: 1050;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
     }
 
-    /* Navbar adjustments */
-    .navbar-collapse {
-        background: white;
-        padding: 1rem;
-        border-radius: 1rem;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        margin-top: 1rem;
+    .mobile-nav-item {
+        text-align: center;
+        color: #6c757d;
+        text-decoration: none;
+        font-size: 0.7rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex: 1;
+        transition: all 0.2s ease;
     }
 
-    /* Footer Mobile Alignment */
-    footer .col-lg-4, 
-    footer .col-lg-2, 
-    footer .col-md-6,
-    footer .text-md-end {
-        text-align: center !important;
-    }
-    
-    footer .text-end {
-        text-align: center !important;
+    .mobile-nav-item i {
+        font-size: 1.25rem;
+        margin-bottom: 2px;
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    footer .d-flex.gap-3 {
-        justify-content: center;
+    .mobile-nav-item.active {
+        color: var(--primary);
+        font-weight: 600;
     }
-    
-    /* Search Badges Wrap */
-    .hero-premium .badge-container {
-        justify-content: center;
-        flex-wrap: wrap;
+
+    .mobile-nav-item.active i {
+        transform: translateY(-3px);
+    }
+
+    /* Spacer for fixed bottom nav */
+    body {
+        padding-bottom: 80px; 
+    }
+
+    /* Hide Desktop Elements */
+    .desktop-only {
+        display: none !important;
     }
 }
 

@@ -258,12 +258,17 @@
             document.getElementById('total-amount').innerText = `₦${total.toLocaleString()}`;
             document.getElementById('modal-amount').innerText = `₦${total.toLocaleString()}`;
             document.getElementById('pay-btn-amount').innerText = `₦${total.toLocaleString()}`;
+            
+            // Update Mobile Sticky Bar
+            const mobileTotal = document.getElementById('mobile-total-amount');
+            if(mobileTotal) mobileTotal.innerText = `₦${total.toLocaleString()}`;
         }
 
-        document.getElementById('place-order-btn').addEventListener('click', () => {
+        const handlePlaceOrder = () => {
             const address = document.getElementById('shipping_address').value;
             if (!address) {
                 alert('Please enter a shipping address');
+                document.getElementById('shipping_address').focus();
                 return;
             }
             
@@ -278,7 +283,15 @@
                 const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
                 modal.show();
             }
-        });
+        };
+
+        document.getElementById('place-order-btn').addEventListener('click', handlePlaceOrder);
+        
+        // Mobile Sticky Button Listener
+        const mobilePayBtn = document.getElementById('mobile-pay-btn');
+        if(mobilePayBtn) {
+            mobilePayBtn.addEventListener('click', handlePlaceOrder);
+        }
 
         function confirmTransfer() {
             // Hide transfer modal

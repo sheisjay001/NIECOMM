@@ -290,10 +290,14 @@
     <script>
         // --- Navigation Logic ---
         function showSection(sectionId) {
-            // Update Sidebar
+            // Update Desktop Sidebar
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             const navLink = document.getElementById('nav-' + sectionId);
             if (navLink) navLink.classList.add('active');
+
+            // Update Mobile Sidebar (if exists)
+            const mobileNavLink = document.getElementById('mobile-nav-' + sectionId);
+            if (mobileNavLink) mobileNavLink.classList.add('active');
 
             // Update Content
             document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));

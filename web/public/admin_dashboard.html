@@ -52,40 +52,70 @@
             border: 1px solid #ffeeba;
         }
         /* Mobile Sidebar */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                top: 0;
-                left: -250px;
-                height: 100vh;
-                width: 250px;
-                z-index: 1050;
-                transition: left 0.3s ease;
-                overflow-y: auto;
-            }
-            .sidebar.show {
-                left: 0;
-            }
-            .sidebar-overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                z-index: 1040;
-            }
-            .sidebar-overlay.show {
-                display: block;
-            }
-        }
+        /* Removed custom mobile sidebar in favor of Bootstrap Offcanvas */
     </style>
 </head>
 <body class="bg-light">
     
-    <!-- Mobile Sidebar Overlay -->
-    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <!-- Mobile Sidebar Offcanvas -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas">
+        <div class="offcanvas-header bg-light border-bottom">
+            <h5 class="offcanvas-title fw-bold">Admin Menu</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <div class="p-3 bg-light border-bottom mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                        <span id="mobile-offcanvas-initials">A</span>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold" id="mobile-offcanvas-username">Admin</h6>
+                        <small class="text-muted">Platform Administrator</small>
+                    </div>
+                </div>
+            </div>
+            <ul class="nav flex-column gap-1 p-3">
+                <li class="nav-item">
+                    <a onclick="showSection('dashboard'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link active text-dark rounded px-3 py-2 mb-1" id="mobile-nav-dashboard">
+                        <i class="fas fa-tachometer-alt me-3 text-primary"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a onclick="showSection('verifications'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-verifications">
+                        <i class="fas fa-user-check me-3 text-success"></i> Verifications
+                        <span class="badge bg-danger rounded-pill ms-auto" id="mobile-nav-badge-verify" style="display:none">0</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a onclick="showSection('users'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-users">
+                        <i class="fas fa-users me-3 text-info"></i> Users & Vendors
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a onclick="showSection('orders'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-orders">
+                        <i class="fas fa-shopping-bag me-3 text-warning"></i> All Orders
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a onclick="showSection('escrow'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-escrow">
+                        <i class="fas fa-wallet me-3 text-secondary"></i> Escrow System
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a onclick="showSection('withdrawals'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-withdrawals">
+                        <i class="fas fa-money-bill-wave me-3 text-success"></i> Withdrawals
+                        <span class="badge bg-warning text-dark rounded-pill ms-auto" id="mobile-nav-badge-withdraw" style="display:none">0</span>
+                    </a>
+                </li>
+                <li class="nav-item mt-3 pt-3 border-top">
+                    <a href="#" onclick="logout()" class="nav-link text-danger px-3 py-2">
+                        <i class="fas fa-sign-out-alt me-3"></i> Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
 
     <div class="container-fluid">
         <div class="row">
@@ -151,12 +181,18 @@
             <div class="col-md-9 col-lg-10 py-4 px-md-4">
                 
                 <!-- Mobile Header -->
-                <div class="d-md-none d-flex justify-content-between align-items-center mb-4">
-                    <button class="btn btn-light shadow-sm border" onclick="toggleSidebar()">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h5 class="mb-0 fw-bold">NIECOMM Admin</h5>
-                    <div style="width: 38px;"></div>
+                <div class="col-12 d-md-none mb-3">
+                    <div class="bg-white p-3 rounded shadow-sm d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                <span id="mobile-header-initials">A</span>
+                            </div>
+                            <span class="fw-bold text-truncate" style="max-width: 150px;" id="mobile-header-username">Admin</span>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
+                            <i class="fas fa-bars me-1"></i> Menu
+                        </button>
+                    </div>
                 </div>
 
                 <!-- SECTION: DASHBOARD -->
@@ -518,8 +554,18 @@
                 if(stats.pending_verifications > 0) {
                     document.getElementById('pending-alert').style.setProperty('display', 'flex', 'important');
                     document.getElementById('pending-count-alert').innerText = stats.pending_verifications;
-                    document.getElementById('nav-badge-verify').innerText = stats.pending_verifications;
-                    document.getElementById('nav-badge-verify').style.display = 'inline-block';
+                    
+                    // Update Desktop Badge
+                    const badge = document.getElementById('nav-badge-verify');
+                    badge.innerText = stats.pending_verifications;
+                    badge.style.display = 'inline-block';
+
+                    // Update Mobile Badge
+                    const mBadge = document.getElementById('mobile-nav-badge-verify');
+                    if(mBadge) {
+                        mBadge.innerText = stats.pending_verifications;
+                        mBadge.style.display = 'inline-block';
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -715,11 +761,22 @@
                 if (requests.length === 0) {
                     document.getElementById('no-withdrawals').classList.remove('d-none');
                     document.getElementById('nav-badge-withdraw').style.display = 'none';
+                    const mBadge = document.getElementById('mobile-nav-badge-withdraw');
+                    if(mBadge) mBadge.style.display = 'none';
                     return;
                 }
 
-                document.getElementById('nav-badge-withdraw').innerText = requests.length;
-                document.getElementById('nav-badge-withdraw').style.display = 'inline-block';
+                // Update Desktop Badge
+                const badge = document.getElementById('nav-badge-withdraw');
+                badge.innerText = requests.length;
+                badge.style.display = 'inline-block';
+
+                // Update Mobile Badge
+                const mBadge = document.getElementById('mobile-nav-badge-withdraw');
+                if(mBadge) {
+                    mBadge.innerText = requests.length;
+                    mBadge.style.display = 'inline-block';
+                }
 
                 tbody.innerHTML = requests.map(r => `
                     <tr>

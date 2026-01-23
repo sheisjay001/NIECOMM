@@ -121,55 +121,103 @@
             try {
                 const res = await fetch('/api/states');
                 const states = await res.json();
-                const select = document.getElementById('state-filter');
-                select.innerHTML = '<option value="">All States</option>' + 
+                
+                // Populate Desktop & Mobile Selects
+                const options = '<option value="">All States</option>' + 
                     states.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
                 
-                select.addEventListener('change', async (e) => {
-                    const stateId = e.target.value;
-                    const lgaSelect = document.getElementById('lga-filter');
-                    const citySelect = document.getElementById('city-filter');
-                    
-                    if (!stateId) {
-                        lgaSelect.innerHTML = '<option value="">All LGAs</option>';
-                        lgaSelect.disabled = true;
-                        if (citySelect) {
-                            citySelect.innerHTML = '<option value="">All Cities</option>';
-                            citySelect.disabled = true;
-                        }
-                        return;
-                    }
+                const desktopSelect = document.getElementById('state-filter');
+                const mobileSelect = document.getElementById('state-filter-mobile');
+                
+                if(desktopSelect) desktopSelect.innerHTML = options;
+                if(mobileSelect) mobileSelect.innerHTML = options;
+                
+                // Add Listeners
+                [desktopSelect, mobileSelect].forEach(select => {
+                    if(!select) return;
+                    select.addEventListener('change', async (e) => {
+                        const isMobile = e.target.id.includes('mobile');
+                        const stateId = e.target.value;
+                        const suffix = isMobile ? '-mobile' : '';
+                        
+                        const lgaSelect = document.getElementById('lga-filter' + suffix);
+                        const citySelect = document.getElementById('city-filter' + suffix);
+                        
+                        // Sync values
+                        const otherSelect = document.getElementById(isMobile ? 'state-filter' : 'state-filter-mobile');
+                        if(otherSelect) otherSelect.value = stateId;
 
-                    // Load LGAs
-                    try {
-                        const lgaRes = await fetch(`/api/states/${stateId}/lgas`);
-                        const lgas = await lgaRes.json();
-                        lgaSelect.innerHTML = '<option value="">All LGAs</option>' + 
-                            lgas.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
-                        lgaSelect.disabled = false;
-
-                        // Load Cities
-                        if (citySelect) {
-                            const cityRes = await fetch(`/api/states/${stateId}/cities`);
-                            const cities = await cityRes.json();
-                            citySelect.innerHTML = '<option value="">All Cities</option>' + 
-                                cities.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-                            citySelect.disabled = false;
+                        if (!stateId) {
+                            lgaSelect.innerHTML = '<option value="">All LGAs</option>';
+                            lgaSelect.disabled = true;
+                            if (citySelect) {
+                                citySelect.innerHTML = '<option value="">All Cities</option>';
+                                citySelect.disabled = true;
+                            }
+                            return;
                         }
-                    } catch (e) {
-                        console.error('Failed to load locations', e);
-                    }
+
+                        // Load LGAs
+                        try {
+                            const lgaRes = await fetch(`/api/states/${stateId}/lgas`);
+                            const lgas = await lgaRes.json();
+                            const lgaOptions = '<option value="">All LGAs</option>' + 
+                                lgas.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                            
+                            lgaSelect.innerHTML = lgaOptions;
+                            lgaSelect.disabled = false;
+                            
+                            // Sync LGA lists to other view too
+                            const otherLga = document.getElementById(isMobile ? 'lga-filter' : 'lga-filter-mobile');
+                            if(otherLga) {
+                                otherLga.innerHTML = lgaOptions;
+                                otherLga.disabled = false;
+                            }
+
+                            // Load Cities
+                            if (citySelect) {
+                                const cityRes = await fetch(`/api/states/${stateId}/cities`);
+                                const cities = await cityRes.json();
+                                const cityOptions = '<option value="">All Cities</option>' + 
+                                    cities.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                                
+                                citySelect.innerHTML = cityOptions;
+                                citySelect.disabled = false;
+                                
+                                const otherCity = document.getElementById(isMobile ? 'city-filter' : 'city-filter-mobile');
+                                if(otherCity) {
+                                    otherCity.innerHTML = cityOptions;
+                                    otherCity.disabled = false;
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Failed to load locations', e);
+                        }
+                    });
                 });
+
             } catch (err) {
                 console.error('Failed to load states', err);
             }
         }
 
+        function applyMobileFilters() {
+            // Close Offcanvas
+            const offcanvasEl = document.getElementById('filterOffcanvas');
+            const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+            if(offcanvas) offcanvas.hide();
+            
+            // Trigger Load
+            loadProducts();
+        }
+
         async function loadProducts() {
             try {
-                const stateId = document.getElementById('state-filter').value;
-                const lgaId = document.getElementById('lga-filter').value;
-                const cityId = document.getElementById('city-filter') ? document.getElementById('city-filter').value : '';
+                // Check both desktop and mobile inputs (they are synced)
+                const stateId = document.getElementById('state-filter').value || document.getElementById('state-filter-mobile').value;
+                const lgaId = document.getElementById('lga-filter').value || document.getElementById('lga-filter-mobile').value;
+                const cityId = (document.getElementById('city-filter') && document.getElementById('city-filter').value) || 
+                               (document.getElementById('city-filter-mobile') && document.getElementById('city-filter-mobile').value) || '';
                 
                 let url = '/api/products';
                 const params = new URLSearchParams();

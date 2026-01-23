@@ -53,45 +53,68 @@
             border: 1px solid #ffeeba;
         }
         /* Mobile Sidebar */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                top: 0;
-                left: -250px;
-                height: 100vh;
-                width: 250px;
-                z-index: 1050;
-                transition: left 0.3s ease;
-                overflow-y: auto;
-            }
-            .sidebar.show {
-                left: 0;
-            }
-            .sidebar-overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                z-index: 1040;
-            }
-            .sidebar-overlay.show {
-                display: block;
-            }
-        }
+        /* Removed custom mobile sidebar in favor of Bootstrap Offcanvas */
     </style>
 </head>
 <body class="bg-light">
     
-    <!-- Mobile Sidebar Overlay -->
-    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <!-- Mobile Sidebar Offcanvas -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas">
+        <div class="offcanvas-header bg-light border-bottom">
+            <h5 class="offcanvas-title fw-bold">Vendor Menu</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <div class="p-3 bg-light border-bottom mb-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                        <span id="mobile-offcanvas-initials">V</span>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold" id="mobile-offcanvas-username">Vendor</h6>
+                        <small class="text-muted">Vendor Account</small>
+                    </div>
+                </div>
+            </div>
+            <ul class="nav flex-column gap-1 p-3">
+                <li class="nav-item">
+                    <a onclick="showSection('dashboard'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link active text-dark rounded px-3 py-2 mb-1" id="mobile-nav-dashboard">
+                        <i class="fas fa-tachometer-alt me-3 text-primary"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a onclick="showSection('products'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-products">
+                        <i class="fas fa-box me-3 text-success"></i> Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a onclick="showSection('orders'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-orders">
+                        <i class="fas fa-shopping-bag me-3 text-warning"></i> Orders
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a onclick="showSection('wallet'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-wallet">
+                        <i class="fas fa-wallet me-3 text-info"></i> Wallet
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a onclick="showSection('settings'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-settings">
+                        <i class="fas fa-cog me-3 text-secondary"></i> Settings
+                    </a>
+                </li>
+                <li class="nav-item mt-3 pt-3 border-top">
+                    <a href="#" onclick="logout()" class="nav-link text-danger px-3 py-2">
+                        <i class="fas fa-sign-out-alt me-3"></i> Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
 
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 bg-white sidebar shadow-sm p-3" id="sidebar">
+            <div class="col-md-3 col-lg-2 bg-white sidebar shadow-sm p-3 d-none d-md-block" id="sidebar">
                 <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
                     <div class="d-flex align-items-center">
                         <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
@@ -102,9 +125,6 @@
                             <small class="text-muted">Vendor Account</small>
                         </div>
                     </div>
-                    <button class="btn btn-link text-dark d-md-none" onclick="toggleSidebar()">
-                        <i class="fas fa-times"></i>
-                    </button>
                 </div>
                 
                 <ul class="nav flex-column gap-2">
@@ -145,12 +165,18 @@
             <div class="col-md-9 col-lg-10 py-4 px-md-4">
                 
                 <!-- Mobile Header -->
-                <div class="d-md-none d-flex justify-content-between align-items-center mb-4">
-                    <button class="btn btn-light shadow-sm border" onclick="toggleSidebar()">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h5 class="mb-0 fw-bold">NIECOMM Vendor</h5>
-                    <div style="width: 38px;"></div> <!-- Spacer -->
+                <div class="col-12 d-md-none mb-3">
+                    <div class="bg-white p-3 rounded shadow-sm d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                <span id="mobile-header-initials">V</span>
+                            </div>
+                            <span class="fw-bold text-truncate" style="max-width: 150px;" id="mobile-header-username">Vendor</span>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
+                            <i class="fas fa-bars me-1"></i> Menu
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Section: Dashboard -->
@@ -514,8 +540,24 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            const initials = currentUser.name.charAt(0).toUpperCase();
+            
+            // Desktop Sidebar
             document.getElementById('sidebar-username').textContent = currentUser.name;
-            document.getElementById('sidebar-initials').textContent = currentUser.name.charAt(0).toUpperCase();
+            document.getElementById('sidebar-initials').textContent = initials;
+            
+            // Mobile Header & Offcanvas
+            const mHeaderUser = document.getElementById('mobile-header-username');
+            if(mHeaderUser) mHeaderUser.textContent = currentUser.name;
+            
+            const mHeaderInit = document.getElementById('mobile-header-initials');
+            if(mHeaderInit) mHeaderInit.textContent = initials;
+
+            const mOffUser = document.getElementById('mobile-offcanvas-username');
+            if(mOffUser) mOffUser.textContent = currentUser.name;
+
+            const mOffInit = document.getElementById('mobile-offcanvas-initials');
+            if(mOffInit) mOffInit.textContent = initials;
             
             showSection('dashboard');
             loadDashboardStats();
@@ -543,18 +585,17 @@
             document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
             
-            document.getElementById('section-' + sectionId).classList.add('active');
-            document.getElementById('nav-' + sectionId).classList.add('active');
-            
-            if (window.innerWidth < 768) {
-                document.getElementById('sidebar').classList.remove('show');
-                document.querySelector('.sidebar-overlay').classList.remove('show');
-            }
-        }
+            // Update Desktop
+            const navLink = document.getElementById('nav-' + sectionId);
+            if(navLink) navLink.classList.add('active');
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('show');
-            document.querySelector('.sidebar-overlay').classList.toggle('show');
+            // Update Mobile
+            const mobileNavLink = document.getElementById('mobile-nav-' + sectionId);
+            if(mobileNavLink) mobileNavLink.classList.add('active');
+            
+            // Show Section
+            const section = document.getElementById('section-' + sectionId);
+            if(section) section.classList.add('active');
         }
 
         // --- DASHBOARD ---
