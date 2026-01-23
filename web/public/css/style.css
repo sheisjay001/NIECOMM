@@ -314,11 +314,11 @@ h1, h2, h3, h4, h5, h6 {
         display: flex;
         justify-content: space-around;
         padding: 0.75rem 0.5rem calc(0.75rem + env(safe-area-inset-bottom));
-        z-index: 1050;
-        box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
-    }
+        z-index: 1030;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+}
 
-    .mobile-nav-item {
+.mobile-nav-item {
         text-align: center;
         color: #6c757d;
         text-decoration: none;
@@ -370,7 +370,7 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     justify-content: space-around;
     padding: 12px 0;
-    z-index: 1050;
+    z-index: 1030;
     box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
     transition: transform 0.3s ease-in-out;
 }
