@@ -920,15 +920,18 @@
         async function processWithdrawal(id, action) {
             if(!confirm(action === 'approve' ? 'Confirm you have manually sent the funds?' : 'Reject and refund to wallet?')) return;
             
+            const status = action === 'approve' ? 'completed' : 'rejected';
+            
             try {
                 const res = await fetch(`/api/admin/withdrawals/${id}`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ action })
+                    body: JSON.stringify({ status })
                 });
                 const data = await res.json();
-                if(data.success) {
+                if(res.ok) {
                     loadWithdrawals();
+                    showToast(`Withdrawal ${status} successfully`);
                 } else {
                     alert('Error: ' + data.error);
                 }

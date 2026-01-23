@@ -115,7 +115,11 @@
                         <td class="fw-bold">#${o.order_number}</td>
                         <td>₦${Number(o.total_amount).toLocaleString()}</td>
                         <td><span class="badge bg-${getStatusColor(o.status)}">${o.status}</span></td>
-                        <td><span class="badge bg-light text-dark border">${o.payment_status}</span></td>
+                        <td>
+                            ${o.payment_status === 'held' 
+                                ? '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary" title="Funds are held safely in escrow until you confirm satisfaction"><i class="fas fa-shield-alt me-1"></i> Escrow Held</span>' 
+                                : `<span class="badge bg-light text-dark border">${o.payment_status}</span>`}
+                        </td>
                         <td>${new Date(o.created_at).toLocaleDateString()}</td>
                         <td>
                             <button class="btn btn-sm btn-primary me-1" onclick="viewDetails('${o.id}')">
