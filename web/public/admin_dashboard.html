@@ -197,57 +197,99 @@
 
                 <!-- SECTION: DASHBOARD -->
                 <div id="section-dashboard" class="section active">
-                    <h2 class="fw-bold mb-4">Platform Overview</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="fw-bold mb-1">Admin Overview</h2>
+                            <p class="text-muted mb-0">Platform performance and pending actions.</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill">
+                                <i class="fas fa-calendar-alt me-2"></i> Today
+                            </span>
+                        </div>
+                    </div>
 
-                    <!-- Escrow Info Card -->
-                    <div class="card-premium escrow-card p-4 mb-4">
-                        <div class="d-flex align-items-start">
-                            <div class="bg-warning bg-opacity-25 p-3 rounded-circle me-3">
-                                <i class="fas fa-shield-alt text-warning fa-lg"></i>
+                    <!-- Action Required Cards -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <div class="card-premium p-4 border-start border-4 border-danger h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="text-muted small mb-1 fw-bold text-uppercase">Pending Verifications</p>
+                                        <h2 class="fw-bold mb-0 text-danger" id="overview-pending-verify">0</h2>
+                                    </div>
+                                    <div class="bg-danger bg-opacity-10 p-3 rounded-circle text-danger">
+                                        <i class="fas fa-user-check fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <button onclick="showSection('verifications')" class="btn btn-sm btn-outline-danger w-100 rounded-pill">Review Applications <i class="fas fa-arrow-right ms-1"></i></button>
+                                </div>
                             </div>
-                            <div>
-                                <h5 class="fw-bold mb-1">Escrow Status</h5>
-                                <p class="mb-0 text-dark opacity-75">Funds are held for 3 days to allow returns, then released after delivery confirmation.</p>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card-premium p-4 border-start border-4 border-warning h-100">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="text-muted small mb-1 fw-bold text-uppercase">Withdrawal Requests</p>
+                                        <h2 class="fw-bold mb-0 text-warning" id="overview-pending-withdraw">0</h2>
+                                    </div>
+                                    <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
+                                        <i class="fas fa-money-bill-wave fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <button onclick="showSection('withdrawals')" class="btn btn-sm btn-outline-warning w-100 rounded-pill text-dark">Process Withdrawals <i class="fas fa-arrow-right ms-1"></i></button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
+                    <h5 class="fw-bold mb-3 text-muted">Platform Stats</h5>
                     <div class="row g-4 mb-4">
                         <div class="col-md-3">
-                            <div class="card-premium p-4 h-100">
-                                <p class="text-muted small mb-1">Total Users</p>
+                            <div class="card-premium p-4 h-100 bg-white">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="bg-primary bg-opacity-10 p-2 rounded me-2">
+                                        <i class="fas fa-users text-primary"></i>
+                                    </div>
+                                    <p class="text-muted small mb-0">Total Users</p>
+                                </div>
                                 <h3 class="fw-bold mb-0" id="stat-users">0</h3>
-                                <small class="text-primary">Registered Accounts</small>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card-premium p-4 h-100">
-                                <p class="text-muted small mb-1">Total Vendors</p>
+                            <div class="card-premium p-4 h-100 bg-white">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="bg-success bg-opacity-10 p-2 rounded me-2">
+                                        <i class="fas fa-store text-success"></i>
+                                    </div>
+                                    <p class="text-muted small mb-0">Total Vendors</p>
+                                </div>
                                 <h3 class="fw-bold mb-0" id="stat-vendors">0</h3>
-                                <small class="text-success">Active Sellers</small>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card-premium p-4 h-100">
-                                <p class="text-muted small mb-1">Total Orders</p>
+                            <div class="card-premium p-4 h-100 bg-white">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="bg-info bg-opacity-10 p-2 rounded me-2">
+                                        <i class="fas fa-shopping-bag text-info"></i>
+                                    </div>
+                                    <p class="text-muted small mb-0">Total Orders</p>
+                                </div>
                                 <h3 class="fw-bold mb-0" id="stat-orders">0</h3>
-                                <small class="text-muted">Platform-wide</small>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card-premium p-4 h-100 border-start border-4 border-primary">
-                                <p class="text-muted small mb-1">Escrow Held</p>
+                            <div class="card-premium p-4 h-100 bg-white">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="bg-secondary bg-opacity-10 p-2 rounded me-2">
+                                        <i class="fas fa-wallet text-secondary"></i>
+                                    </div>
+                                    <p class="text-muted small mb-0">Escrow Held</p>
+                                </div>
                                 <h3 class="fw-bold text-primary mb-0" id="stat-escrow">₦0.00</h3>
-                                <small class="text-muted">Trust Funds</small>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-warning d-flex align-items-center shadow-sm border-0" role="alert" id="pending-alert" style="display:none !important">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <div>
-                            You have <strong id="pending-count-alert">0</strong> pending vendor verifications.
-                            <a href="#" onclick="showSection('verifications')" class="alert-link">Review now</a>.
                         </div>
                     </div>
                 </div>
@@ -321,13 +363,6 @@
                 <div id="section-orders" class="section">
                     <h2 class="fw-bold mb-4">All Orders</h2>
                     
-                    <div class="card-premium escrow-card p-3 mb-4">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-info-circle text-warning me-2"></i>
-                            <small class="mb-0 fw-bold">Escrow Policy: Funds are released 3 days after delivery confirmation.</small>
-                        </div>
-                    </div>
-
                     <div class="card-premium p-0 overflow-hidden">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -561,19 +596,31 @@
                 document.getElementById('stat-orders').innerText = stats.orders;
                 document.getElementById('stat-escrow').innerText = '₦' + Number(stats.escrow_held || 0).toLocaleString();
 
+                // Overview Action Cards
+                document.getElementById('overview-pending-verify').innerText = stats.pending_verifications || 0;
+                document.getElementById('overview-pending-withdraw').innerText = stats.pending_withdrawals || 0;
+
+                // Update Badges
                 if(stats.pending_verifications > 0) {
-                    document.getElementById('pending-alert').style.setProperty('display', 'flex', 'important');
-                    document.getElementById('pending-count-alert').innerText = stats.pending_verifications;
-                    
-                    // Update Desktop Badge
                     const badge = document.getElementById('nav-badge-verify');
                     badge.innerText = stats.pending_verifications;
                     badge.style.display = 'inline-block';
 
-                    // Update Mobile Badge
                     const mBadge = document.getElementById('mobile-nav-badge-verify');
                     if(mBadge) {
                         mBadge.innerText = stats.pending_verifications;
+                        mBadge.style.display = 'inline-block';
+                    }
+                }
+
+                if(stats.pending_withdrawals > 0) {
+                    const badge = document.getElementById('nav-badge-withdraw');
+                    badge.innerText = stats.pending_withdrawals;
+                    badge.style.display = 'inline-block';
+                    
+                    const mBadge = document.getElementById('mobile-nav-badge-withdraw');
+                    if(mBadge) {
+                        mBadge.innerText = stats.pending_withdrawals;
                         mBadge.style.display = 'inline-block';
                     }
                 }

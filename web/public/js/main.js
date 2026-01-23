@@ -100,8 +100,13 @@ function checkAuth() {
     const user = JSON.parse(userStr);
     if (authButtons) {
         let dashboardLink = 'user_dashboard.html';
+        let showOrders = true;
+
         if (user.role === 'vendor') dashboardLink = 'vendor_dashboard.html';
-        if (user.role === 'admin') dashboardLink = 'admin_dashboard.html';
+        if (user.role === 'admin') {
+            dashboardLink = 'admin_dashboard.html';
+            showOrders = false;
+        }
 
         authButtons.innerHTML = `
             <div class="dropdown">
@@ -113,7 +118,7 @@ function checkAuth() {
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2">
                     <li><a class="dropdown-item" href="${dashboardLink}">Dashboard</a></li>
-                    <li><a class="dropdown-item" href="orders.html">My Orders</a></li>
+                    ${showOrders ? '<li><a class="dropdown-item" href="orders.html">My Orders</a></li>' : ''}
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item text-danger" href="#" onclick="logout()">Logout</a></li>
                 </ul>

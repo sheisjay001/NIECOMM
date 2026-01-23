@@ -924,18 +924,20 @@ app.get('/api/admin/stats', async (req, res) => {
     try {
         const conn = await getDb();
         const [users] = await conn.execute('SELECT COUNT(*) as count FROM users');
+        const [vendors] = await conn.execute("SELECT COUNT(*) as count FROM users WHERE role = 'vendor'");
         const [orders] = await conn.execute('SELECT COUNT(*) as count FROM orders');
-        const [products] = await conn.execute('SELECT COUNT(*) as count FROM products');
-        const [pendingVendors] = await conn.execute("SELECT COUNT(*) as count FROM vendor_verifications WHERE status = 'pending'");
-        const [pendingReturns] = await conn.execute("SELECT COUNT(*) as count FROM returns WHERE status = 'requested'");
+        const [pendingVerifications] = await conn.execute("SELECT COUNT(*) as count FROM vendor_verifications WHERE status = 'pending'");
+        const [pendingWithdrawals] = await conn.execute("SELECT COUNT(*) as count FROM withdrawals WHERE status = 'pending'");
+        const [escrowHeld] = await conn.execute("SELECT SUM(total_amount) as total FROM orders WHERE payment_status = 'held'");
         
         await conn.end();
         res.json({
             users: users[0].count,
+            vendors: vendors[0].count,
             orders: orders[0].count,
-            products: products[0].count,
-            pendingVendors: pendingVendors[0].count,
-            pendingReturns: pendingReturns[0].count
+            pending_verifications: pendingVerifications[0].count,
+            pending_withdrawals: pendingWithdrawals[0].count,
+            escrow_held: escrowHeld[0].total || 0
         });
     } catch (err) {
         console.error(err);
