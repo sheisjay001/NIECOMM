@@ -544,6 +544,38 @@
         </div>
     </div>
 
+    <!-- Document Preview Modal -->
+    <div class="modal fade" id="docPreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Verification Documents</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <ul class="nav nav-pills mb-3 justify-content-center" id="pills-tab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded-pill" id="pills-cac-tab" data-bs-toggle="pill" data-bs-target="#pills-cac" type="button">CAC Certificate</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-pill" id="pills-shop-tab" data-bs-toggle="pill" data-bs-target="#pills-shop" type="button">Shop Photo</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="pills-tabContent">
+                        <div class="tab-pane fade show active" id="pills-cac">
+                            <img id="preview-cac" src="" class="img-fluid rounded shadow-sm" alt="CAC Certificate">
+                            <p id="no-cac" class="text-muted mt-3 d-none">No CAC document uploaded.</p>
+                        </div>
+                        <div class="tab-pane fade" id="pills-shop">
+                            <img id="preview-shop" src="" class="img-fluid rounded shadow-sm" alt="Shop Photo">
+                            <p id="no-shop" class="text-muted mt-3 d-none">No Shop photo uploaded.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script>
@@ -648,13 +680,13 @@
                             <small class="text-muted">${u.email}</small>
                         </td>
                         <td>
-                            <div>CAC: ${u.cac_number || 'N/A'}</div>
-                            <div>Phone: ${u.phone}</div>
+                            <button onclick="viewDocuments('${u.id}', '${u.cac_certificate}', '${u.shop_image}')" class="btn btn-sm btn-outline-primary rounded-pill mb-1">View Docs</button>
+                            <div class="small">CAC: ${u.cac_number || 'N/A'}</div>
                         </td>
                         <td>${u.address || 'N/A'}</td>
                         <td>
-                            <button onclick="verifyUser(${u.id}, 'approve')" class="btn btn-sm btn-success rounded-pill me-1"><i class="fas fa-check"></i> Approve</button>
-                            <button onclick="verifyUser(${u.id}, 'reject')" class="btn btn-sm btn-outline-danger rounded-pill"><i class="fas fa-times"></i> Reject</button>
+                            <button onclick="verifyUser(${u.id}, 'approve')" class="btn btn-sm btn-success rounded-pill me-1"><i class="fas fa-check"></i></button>
+                            <button onclick="verifyUser(${u.id}, 'reject')" class="btn btn-sm btn-outline-danger rounded-pill"><i class="fas fa-times"></i></button>
                         </td>
                     </tr>
                 `).join('');
@@ -673,14 +705,43 @@
                 });
                 const data = await res.json();
                 if(data.success) {
+                    showToast(`Vendor ${action} successfully`, 'success');
                     loadVerifications();
                     loadStats();
                 } else {
-                    alert('Error: ' + data.error);
+                    showToast('Error: ' + data.error, 'error');
                 }
             } catch(err) {
                 console.error(err);
+                showToast('Server connection error', 'error');
             }
+        }
+
+        function viewDocuments(id, cac, shop) {
+            const cacImg = document.getElementById('preview-cac');
+            const shopImg = document.getElementById('preview-shop');
+            const noCac = document.getElementById('no-cac');
+            const noShop = document.getElementById('no-shop');
+
+            if (cac && cac !== 'null' && cac !== 'undefined') {
+                cacImg.src = '/' + cac.replace('public/', '');
+                cacImg.classList.remove('d-none');
+                noCac.classList.add('d-none');
+            } else {
+                cacImg.classList.add('d-none');
+                noCac.classList.remove('d-none');
+            }
+
+            if (shop && shop !== 'null' && shop !== 'undefined') {
+                shopImg.src = '/' + shop.replace('public/', '');
+                shopImg.classList.remove('d-none');
+                noShop.classList.add('d-none');
+            } else {
+                shopImg.classList.add('d-none');
+                noShop.classList.remove('d-none');
+            }
+
+            new bootstrap.Modal(document.getElementById('docPreviewModal')).show();
         }
 
         // --- USERS ---

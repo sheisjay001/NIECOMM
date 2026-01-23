@@ -1,6 +1,70 @@
-// Main JS for shared logic
+// Session Timeout (30 mins)
+const SESSION_TIMEOUT = 30 * 60 * 1000;
+let sessionTimer;
 
-// Load Navigation Dynamically (to avoid repeating HTML)
+function resetSessionTimer() {
+    clearTimeout(sessionTimer);
+    sessionTimer = setTimeout(() => {
+        logout('Session expired due to inactivity.');
+    }, SESSION_TIMEOUT);
+}
+
+// Attach listeners for activity
+['click', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
+    document.addEventListener(evt, resetSessionTimer, true);
+});
+
+// Initial start
+resetSessionTimer();
+
+function logout(msg) {
+    localStorage.removeItem('user');
+    if(msg) alert(msg); // Fallback if toast not ready or redirecting
+    window.location.href = 'login.html';
+}
+
+// Toast Notification System
+function showToast(message, type = 'info') {
+    // Create container if not exists
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+    }
+
+    const toastId = 'toast-' + Date.now();
+    const bgClass = type === 'success' ? 'bg-success' : (type === 'error' ? 'bg-danger' : (type === 'warning' ? 'bg-warning' : 'bg-primary'));
+    const textClass = type === 'warning' ? 'text-dark' : 'text-white';
+
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center ${textClass} ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body fw-bold">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+
+    // Append to container
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+    // Initialize and show
+    const toastEl = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+    toast.show();
+
+    // Cleanup after hidden
+    toastEl.addEventListener('hidden.bs.toast', () => {
+        toastEl.remove();
+    });
+}
+
+// Main JS for shared logic
 function loadNav() {
     const navPlaceholder = document.getElementById('nav-placeholder');
     if (navPlaceholder) {

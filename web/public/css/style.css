@@ -1,19 +1,21 @@
 :root {
-    /* Premium Color Palette (Apple/Stripe inspired) */
-    --bg-body: #F5F5F7;
+    /* Premium Color Palette (Nigeria Focused) */
+    --bg-body: #F9FAFB;
     --bg-card: #FFFFFF;
-    --bg-dark: #000000;
-    --text-main: #1D1D1F;
-    --text-light: #F5F5F7;
-    --text-muted: #86868B;
+    --bg-dark: #1F2937;
+    --text-main: #111827;
+    --text-light: #F3F4F6;
+    --text-muted: #6B7280;
     
-    --primary: #0071E3;
-    --primary-hover: #0077ED;
-    --accent: #2997FF;
-    --gold: #F5A623;
+    /* Nigeria Flag Inspired + Tech */
+    --primary: #008751; /* Nigeria Green */
+    --primary-hover: #006b3f;
+    --accent: #D4AF37; /* Gold for premium/wealth */
     
-    --danger: #FF3B30;
-    --success: #34C759;
+    --danger: #EF4444;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --info: #3B82F6;
     
     /* Spacing & Layout */
     --radius-sm: 8px;
@@ -48,7 +50,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Utilities */
 .text-gradient {
-    background: linear-gradient(135deg, #0071E3 0%, #2997FF 100%);
+    background: linear-gradient(135deg, #008751 0%, #D4AF37 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
