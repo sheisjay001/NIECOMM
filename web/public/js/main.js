@@ -68,6 +68,19 @@ function loadNav() {
     }
 }
 
+function checkAuthRedirect() {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) {
+        window.location.href = 'login.html';
+    } else if (user.role === 'admin') {
+        window.location.href = 'admin_dashboard.html';
+    } else if (user.role === 'vendor') {
+        window.location.href = 'vendor_dashboard.html';
+    } else {
+        window.location.href = 'user_dashboard.html';
+    }
+}
+
 function checkAuth() {
     const userStr = localStorage.getItem('user');
     const authButtons = document.getElementById('auth-buttons');

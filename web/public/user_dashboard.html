@@ -361,7 +361,20 @@
         // --- Data Loading ---
         async function initDashboard() {
             const user = checkAuth();
-            if (!user) return;
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Strict Role Redirection
+            if (user.role === 'admin') {
+                window.location.replace('admin_dashboard.html');
+                return;
+            }
+            if (user.role === 'vendor') {
+                window.location.replace('vendor_dashboard.html');
+                return;
+            }
 
             // Set User Info
             document.getElementById('sidebar-username').textContent = user.username;
