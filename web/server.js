@@ -688,6 +688,74 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
+// Wishlist API
+app.get('/api/wishlist', async (req, res) => {
+    const userId = req.query.user_id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const conn = await getDb();
+        await conn.query(`CREATE TABLE IF NOT EXISTS wishlist (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            product_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_item (user_id, product_id)
+        )`);
+
+        const [rows] = await conn.execute(`
+            SELECT w.id as wishlist_id, p.*, u.username as vendor_name, u.shop_address, u.is_verified
+            FROM wishlist w
+            JOIN products p ON w.product_id = p.id
+            JOIN users u ON p.vendor_id = u.id
+            WHERE w.user_id = ?
+            ORDER BY w.created_at DESC
+        `, [userId]);
+        
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/wishlist', async (req, res) => {
+    const { user_id, product_id } = req.body;
+    if (!user_id || !product_id) return res.status(400).json({ error: 'Missing data' });
+
+    try {
+        const conn = await getDb();
+        // Check if exists
+        const [exists] = await conn.execute('SELECT id FROM wishlist WHERE user_id = ? AND product_id = ?', [user_id, product_id]);
+        if (exists.length > 0) {
+            await conn.end();
+            return res.status(400).json({ error: 'Item already in wishlist' });
+        }
+
+        await conn.execute('INSERT INTO wishlist (user_id, product_id) VALUES (?, ?)', [user_id, product_id]);
+        await conn.end();
+        res.status(201).json({ message: 'Added to wishlist' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.delete('/api/wishlist/:id', async (req, res) => {
+    try {
+        const conn = await getDb();
+        await conn.execute('DELETE FROM wishlist WHERE id = ?', [req.params.id]);
+        await conn.end();
+        res.json({ message: 'Removed from wishlist' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Get States
 app.get('/api/states', async (req, res) => {
     try {

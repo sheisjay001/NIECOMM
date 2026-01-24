@@ -17,7 +17,101 @@ function resetSessionTimer() {
 // Initial start
 resetSessionTimer();
 
-// Main JS for shared logic
+// Wishlist Logic
+async function toggleWishlist(btn, productId) {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) {
+        showToast('Please login to save items', 'info');
+        setTimeout(() => window.location.href = 'login.html', 1500);
+        return;
+    }
+
+    const icon = btn.querySelector('i');
+    const isActive = icon.classList.contains('fas'); // Solid heart means in wishlist
+
+    try {
+        if (isActive) {
+            // Remove (We need wishlist_id, but here we might only have productId. 
+            // Ideally we store wishlist_id on the button. If not, we might need a different API or lookup.)
+            // For now, let's assume the button has data-wishlist-id if known, or we call a 'remove by product' endpoint if we had one.
+            // Since we don't have 'remove by product' yet, and finding the ID is complex, 
+            // let's just implement ADD for now in the shared function and handle specific remove logic where we have the ID.
+            // Wait, I can make the backend support DELETE by product_id too?
+            // Or I can just fetch the wishlist to find the ID.
+            
+            // Let's assume for this interaction, we just toggle the UI and let the user manage removals in wishlist page 
+            // OR we implement a smart toggle endpoint.
+            // Let's use the 'add' endpoint which is safe.
+            // If it's already there, the backend might error or return existing.
+            
+            // Actually, best UX is to allow toggling.
+            // Let's query the wishlist to find the item to delete it.
+            const wRes = await fetch(`/api/wishlist?user_id=${user.id}`);
+            const wItems = await wRes.json();
+            const item = wItems.find(i => i.id === productId); // API returns product details joined, check mapping.
+            // The API returns: w.id as wishlist_id, p.*
+            // So we check if p.id (which is in the root of the object because of p.*?)
+            // Let's look at the SQL: SELECT w.id as wishlist_id, p.* ...
+            // So the row has 'id' from product? No, p.* includes id.
+            // But if column names collide, p.id might overwrite w.id?
+            // "w.id as wishlist_id" is explicit. "p.*" includes id.
+            // So row.id is product id, row.wishlist_id is wishlist id.
+            
+            const wishlistItem = wItems.find(i => i.id === productId);
+            if (wishlistItem) {
+                await fetch(`/api/wishlist/${wishlistItem.wishlist_id}?user_id=${user.id}`, { method: 'DELETE' });
+                icon.classList.replace('fas', 'far');
+                icon.classList.remove('text-danger');
+                showToast('Removed from wishlist');
+            }
+        } else {
+            // Add
+            const res = await fetch('/api/wishlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.id, product_id: productId })
+            });
+            if (res.ok) {
+                icon.classList.replace('far', 'fas');
+                icon.classList.add('text-danger');
+                showToast('Added to wishlist');
+            } else {
+                const data = await res.json();
+                if(data.error && data.error.includes('Duplicate')) {
+                     showToast('Already in wishlist', 'info');
+                     icon.classList.replace('far', 'fas');
+                     icon.classList.add('text-danger');
+                } else {
+                    showToast('Failed to add to wishlist', 'error');
+                }
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Error updating wishlist', 'error');
+    }
+}
+
+// Helper to check wishlist status on page load (to be called by pages)
+async function updateWishlistIcons() {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) return;
+
+    try {
+        const res = await fetch(`/api/wishlist?user_id=${user.id}`);
+        const items = await res.json();
+        const ids = new Set(items.map(i => i.id)); // Product IDs
+        
+        document.querySelectorAll('.wishlist-btn').forEach(btn => {
+            const pid = parseInt(btn.dataset.productId);
+            if (ids.has(pid)) {
+                const icon = btn.querySelector('i');
+                icon.classList.replace('far', 'fas');
+                icon.classList.add('text-danger');
+            }
+        });
+    } catch (e) { console.error(e); }
+}
 function loadNav() {
     const navPlaceholder = document.getElementById('nav-placeholder');
     if (navPlaceholder) {

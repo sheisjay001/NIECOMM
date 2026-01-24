@@ -219,11 +219,16 @@
                 const cityId = (document.getElementById('city-filter') && document.getElementById('city-filter').value) || 
                                (document.getElementById('city-filter-mobile') && document.getElementById('city-filter-mobile').value) || '';
                 
+                // Get search query from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const searchQuery = urlParams.get('search');
+
                 let url = '/api/products';
                 const params = new URLSearchParams();
                 if (stateId) params.append('state_id', stateId);
                 if (lgaId) params.append('lga_id', lgaId);
                 if (cityId) params.append('city_id', cityId);
+                if (searchQuery) params.append('search', searchQuery);
                 
                 if (userLocation) {
                     params.append('user_lat', userLocation.lat);
