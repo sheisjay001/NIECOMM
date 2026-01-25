@@ -27,7 +27,47 @@
                         </tr>
                     </thead>
                     <tbody id="orders-body">
-                        <tr><td colspan="6" class="text-center">Loading...</td></tr>
+                        <!-- Skeleton Loading -->
+                        <tr>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-75"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-rect w-75" style="height: 30px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-75"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-rect w-75" style="height: 30px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-75"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-rect w-75" style="height: 30px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-75"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-rect w-75" style="height: 30px;"></div></td>
+                        </tr>
+                        <tr>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-text w-75"></div></td>
+                            <td><div class="skeleton skeleton-text w-50"></div></td>
+                            <td><div class="skeleton skeleton-rect w-75" style="height: 30px;"></div></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -138,6 +178,10 @@
                                 `<button class="btn btn-sm btn-success ms-1" onclick="confirmOrder(${o.id}, 'satisfaction')">Confirm Satisfaction</button>`
                                 : ''}
                             
+                            <button class="btn btn-sm btn-outline-warning ms-1" onclick="window.location.href='dispute_create.html?order_id=${o.id}'" title="Report a problem">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </button>
+
                             ${isVendor && o.status !== 'delivered' && o.status !== 'cancelled' ?
                                 `<div class="dropdown d-inline-block">
                                   <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Status</button>

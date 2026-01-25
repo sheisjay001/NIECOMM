@@ -49,35 +49,20 @@
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="skeleton skeleton-rect" style="aspect-ratio: 1/1;"></div>
-                    <div class="card-body">
-                        <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
-                        <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
-                        <div class="skeleton skeleton-text mb-2" style="width: 60%;"></div>
-                    </div>
-                </div>
+        </div>
+    </div>
+
+    <!-- Compare Floating Bar -->
+    <div id="compare-bar" class="fixed-bottom bg-white shadow-lg border-top p-3 d-none" style="z-index: 1050;">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div>
+                <span class="fw-bold me-2">Compare Products</span>
+                <span class="badge bg-primary rounded-pill" id="compare-count">0</span>
+                <span class="text-muted small ms-2">Max 3 items</span>
             </div>
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="skeleton skeleton-rect" style="aspect-ratio: 1/1;"></div>
-                    <div class="card-body">
-                        <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
-                        <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
-                        <div class="skeleton skeleton-text mb-2" style="width: 60%;"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg-3 d-none d-md-block">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="skeleton skeleton-rect" style="aspect-ratio: 1/1;"></div>
-                    <div class="card-body">
-                        <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
-                        <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
-                        <div class="skeleton skeleton-text mb-2" style="width: 60%;"></div>
-                    </div>
-                </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="clearCompare()">Clear</button>
+                <a href="compare.html" class="btn btn-sm btn-primary">Compare Now</a>
             </div>
         </div>
     </div>
@@ -86,13 +71,39 @@
     <script src="js/main.js"></script>
     <script>
         let userLocation = null;
+        // compareList logic moved to main.js
 
         document.addEventListener('DOMContentLoaded', () => {
             loadNav();
             loadStates();
             getUserLocation();
             loadProducts();
+            // updateCompareUI is called by loadNav or can be called here safely if main.js is loaded
+            if(typeof updateCompareUI === 'function') updateCompareUI();
         });
+
+        // toggleCompare moved to main.js
+
+
+        function clearCompare() {
+            compareList = [];
+            localStorage.removeItem('compareList');
+            updateCompareUI();
+            // Uncheck all
+            document.querySelectorAll('.compare-check').forEach(c => c.checked = false);
+        }
+
+        function updateCompareUI() {
+            const bar = document.getElementById('compare-bar');
+            const count = document.getElementById('compare-count');
+            
+            if (compareList.length > 0) {
+                bar.classList.remove('d-none');
+                count.innerText = compareList.length;
+            } else {
+                bar.classList.add('d-none');
+            }
+        }
 
         function getUserLocation() {
             // Check if user is logged in and has state (Optional: simulate from profile)
@@ -211,7 +222,25 @@
             loadProducts();
         }
 
+        function getSkeletonHTML() {
+            return Array(4).fill(0).map(() => `
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="skeleton skeleton-img" style="aspect-ratio: 1/1;"></div>
+                        <div class="card-body">
+                            <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
+                            <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
+                            <div class="skeleton skeleton-text mb-2" style="width: 60%;"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
         async function loadProducts() {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = getSkeletonHTML(); // Show skeleton while loading
+
             try {
                 // Check both desktop and mobile inputs (they are synced)
                 const stateId = document.getElementById('state-filter').value || document.getElementById('state-filter-mobile').value;
@@ -270,11 +299,17 @@
                     <div class="col-6 col-md-4 col-lg-3">
                         <div class="card h-100 border-0 shadow-sm hover-shadow">
                             <div class="position-relative">
-                                <img src="${p.image_url || 'https://via.placeholder.com/300'}" class="card-img-top" alt="${p.name}" style="aspect-ratio: 1/1; object-fit: cover;">
+                                <div style="cursor: pointer;" onclick="trackProductClick(${p.vendor_id}, ${p.id}); window.location.href='product_details.html?id=${p.id}'">
+                                    <img src="${p.image_url || 'https://via.placeholder.com/300'}" class="card-img-top" alt="${p.name}" style="aspect-ratio: 1/1; object-fit: cover;">
+                                </div>
                                 ${p.is_verified ? '<span class="position-absolute top-0 end-0 badge bg-success m-2"><i class="fas fa-check-circle"></i> Verified</span>' : ''}
+                                <div class="form-check position-absolute top-0 start-0 m-2">
+                                    <input class="form-check-input compare-check border-secondary" type="checkbox" value="" id="compare-${p.id}" data-id="${p.id}" onchange="toggleCompare(${p.id})" ${compareList.includes(p.id) ? 'checked' : ''}>
+                                    <label class="form-check-label badge bg-white text-dark shadow-sm" for="compare-${p.id}" style="cursor: pointer;">Compare</label>
+                                </div>
                             </div>
                             <div class="card-body p-2 p-md-3">
-                                <h5 class="card-title text-truncate mb-1 small-md">${p.name}</h5>
+                                <h5 class="card-title text-truncate mb-1 small-md" style="cursor: pointer;" onclick="trackProductClick(${p.vendor_id}, ${p.id}); window.location.href='product_details.html?id=${p.id}'">${p.name}</h5>
                                 <p class="card-text text-primary fw-bold mb-1">₦${Number(p.price).toLocaleString()}</p>
                                 
                                 ${distanceBadge}
@@ -286,7 +321,7 @@
                                 ${p.sales_count > 0 ? `<div class="small text-success mb-2"><i class="fas fa-shopping-bag me-1"></i> ${p.sales_count} sold</div>` : ''}
 
                                 <div class="d-flex gap-2 mt-3 flex-column flex-md-row">
-                                    <a href="product_details.html?id=${p.id}" class="btn btn-sm btn-light border w-100">Details</a>
+                                    <a href="product_details.html?id=${p.id}" onclick="trackProductClick(${p.vendor_id}, ${p.id})" class="btn btn-sm btn-light border w-100">Details</a>
                                     <button onclick='addToCart(${JSON.stringify(p).replace(/'/g, "&#39;")})' class="btn btn-sm btn-outline-primary w-100">Add</button>
                                 </div>
                             </div>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Profile - NIECOMM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-theme="light">
+    <!-- Navigation -->
+    <div id="nav-placeholder"></div>
+
+    <div class="container py-5">
+        <!-- Vendor Header Skeleton -->
+        <div id="vendor-header-skeleton" class="card border-0 shadow-sm mb-5">
+            <div class="card-body p-4">
+                <div class="d-flex flex-column flex-md-row align-items-center gap-4">
+                    <div class="skeleton skeleton-rect rounded-circle" style="width: 100px; height: 100px;"></div>
+                    <div class="flex-grow-1 text-center text-md-start w-100">
+                        <div class="skeleton skeleton-text w-50 mb-2 mx-auto mx-md-0"></div>
+                        <div class="skeleton skeleton-text w-25 mb-3 mx-auto mx-md-0"></div>
+                        <div class="d-flex gap-2 justify-content-center justify-content-md-start">
+                            <div class="skeleton skeleton-text w-25"></div>
+                            <div class="skeleton skeleton-text w-25"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendor Header (Hidden) -->
+        <div id="vendor-header" class="card border-0 shadow-sm mb-5 d-none">
+            <div class="card-body p-4">
+                <div class="d-flex flex-column flex-md-row align-items-center gap-4">
+                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold fs-1 flex-shrink-0" style="width: 100px; height: 100px;" id="vendor-avatar">
+                        V
+                    </div>
+                    <div class="flex-grow-1 text-center text-md-start">
+                        <h2 class="fw-bold mb-1">
+                            <span id="vendor-name">Vendor Name</span>
+                            <i class="fas fa-check-circle text-success small ms-2 d-none" id="vendor-verified" title="Verified Vendor"></i>
+                        </h2>
+                        <p class="text-muted mb-3" id="vendor-location">Location</p>
+                        <div class="d-flex gap-3 justify-content-center justify-content-md-start text-muted small">
+                            <span><i class="fas fa-box me-1"></i> <span id="vendor-products-count">0</span> Products</span>
+                            <span><i class="fas fa-calendar-alt me-1"></i> Joined <span id="vendor-joined">Date</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendor Products -->
+        <h4 class="mb-4 fw-bold">Products</h4>
+        <div class="row g-4" id="products-grid">
+            <!-- Product Skeletons -->
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="skeleton skeleton-rect w-100" style="aspect-ratio: 1/1;"></div>
+                    <div class="card-body">
+                        <div class="skeleton skeleton-text mb-2"></div>
+                        <div class="skeleton skeleton-text w-50"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="skeleton skeleton-rect w-100" style="aspect-ratio: 1/1;"></div>
+                    <div class="card-body">
+                        <div class="skeleton skeleton-text mb-2"></div>
+                        <div class="skeleton skeleton-text w-50"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="skeleton skeleton-rect w-100" style="aspect-ratio: 1/1;"></div>
+                    <div class="card-body">
+                        <div class="skeleton skeleton-text mb-2"></div>
+                        <div class="skeleton skeleton-text w-50"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="skeleton skeleton-rect w-100" style="aspect-ratio: 1/1;"></div>
+                    <div class="card-body">
+                        <div class="skeleton skeleton-text mb-2"></div>
+                        <div class="skeleton skeleton-text w-50"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadNav();
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const vendorId = urlParams.get('vendor_id');
+            
+            if (!vendorId) {
+                document.querySelector('.container').innerHTML = '<div class="alert alert-danger">Vendor ID missing</div>';
+                return;
+            }
+
+            // Track Profile View
+            try {
+                await fetch('/api/track/event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vendor_id: vendorId, type: 'profile_view' })
+                });
+            } catch (e) {
+                console.error('Tracking error', e);
+            }
+
+            try {
+                // Fetch Vendor Details
+                const vRes = await fetch(`/api/vendors/${vendorId}`);
+                if (!vRes.ok) throw new Error('Vendor not found');
+                const vendor = await vRes.json();
+
+                // Render Header
+                document.getElementById('vendor-avatar').textContent = vendor.username.charAt(0).toUpperCase();
+                document.getElementById('vendor-name').textContent = vendor.username;
+                if (vendor.is_verified) document.getElementById('vendor-verified').classList.remove('d-none');
+                
+                let location = vendor.state_name || 'Nationwide';
+                if (vendor.city_name) location += `, ${vendor.city_name}`;
+                document.getElementById('vendor-location').textContent = location;
+                
+                document.getElementById('vendor-products-count').textContent = vendor.product_count;
+                document.getElementById('vendor-joined').textContent = new Date(vendor.created_at).toLocaleDateString();
+
+                document.getElementById('vendor-header-skeleton').classList.add('d-none');
+                document.getElementById('vendor-header').classList.remove('d-none');
+
+                // Fetch Vendor Products
+                const pRes = await fetch(`/api/products?vendor_id=${vendorId}`);
+                const products = await pRes.json();
+                
+                const grid = document.getElementById('products-grid');
+                if (products.length === 0) {
+                    grid.innerHTML = '<div class="col-12 text-center text-muted">This vendor has no products yet.</div>';
+                } else {
+                    grid.innerHTML = products.map(p => `
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="card h-100 border-0 shadow-sm hover-shadow">
+                                <div class="position-relative" style="cursor: pointer;" onclick="trackProductClick(${p.vendor_id}, ${p.id}); window.location.href='product_details.html?id=${p.id}'">
+                                    <img src="${p.image || 'https://via.placeholder.com/300'}" class="card-img-top" alt="${p.name}" style="aspect-ratio: 1/1; object-fit: cover;">
+                                </div>
+                                <div class="card-body p-2">
+                                    <h6 class="card-title text-truncate small mb-1" style="cursor: pointer;" onclick="window.location.href='product_details.html?id=${p.id}'">${p.name}</h6>
+                                    <p class="card-text text-primary fw-bold small">₦${Number(p.price).toLocaleString()}</p>
+                                    <button class="btn btn-sm btn-outline-primary w-100 mt-2" onclick="addToCart({id: ${p.id}, name: '${p.name.replace(/'/g, "\\'")}', price: ${p.price}, image: '${p.image || ''}', vendor_id: ${p.vendor_id}})">
+                                        Add to Cart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+            } catch (err) {
+                console.error(err);
+                document.querySelector('.container').innerHTML = '<div class="alert alert-danger">Failed to load vendor profile</div>';
+            }
+        });
+
+        function trackProductClick(vendorId, productId) {
+             const currentUser = JSON.parse(localStorage.getItem('user'));
+             fetch('/api/analytics/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vendor_id: vendorId,
+                    user_id: currentUser ? currentUser.id : null,
+                    event_type: 'click',
+                    product_id: productId
+                })
+            }).catch(console.error);
+        }
+    </script>
+</body>
+</html>

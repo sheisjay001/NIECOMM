@@ -47,10 +47,11 @@
                             <h3 class="text-white m-0">Find Your Gadget</h3>
                             <i class="fas fa-search text-secondary fa-lg"></i>
                         </div>
-                        <form action="products.html" method="get">
+                        <form action="products.html" method="get" class="position-relative">
                             <div class="input-group mb-3">
-                                <input type="text" name="q" class="form-control form-control-lg bg-dark text-white border-secondary" placeholder="Search iPhone 15, MacBook..." style="border-radius: 12px;">
+                                <input type="text" name="search" id="global-search-input" class="form-control form-control-lg bg-dark text-white border-secondary" placeholder="Search iPhone 15, MacBook..." style="border-radius: 12px;" oninput="handleSearchInput(this.value)" autocomplete="off">
                             </div>
+                            <div id="search-suggestions" class="position-absolute w-100 bg-white shadow-lg rounded-3 overflow-hidden" style="display: none; top: 60px; left: 0; z-index: 1000; border: 1px solid #eee;"></div>
                             <div class="d-flex gap-2 mb-4 badge-container">
                                 <span class="badge bg-dark border border-secondary text-secondary p-2 rounded-pill fw-normal">iPhone 15</span>
                                 <span class="badge bg-dark border border-secondary text-secondary p-2 rounded-pill fw-normal">Samsung S24</span>
@@ -125,9 +126,42 @@
             </div>
             
             <div class="row g-3" id="categories-container">
-                <!-- Loaded Dynamically -->
-                <div class="col-12 text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
+                <!-- Skeletons -->
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="category-card text-center p-4 rounded-4 bg-light h-100">
+                        <div class="skeleton skeleton-img rounded-circle mx-auto mb-3" style="width: 60px; height: 60px;"></div>
+                        <div class="skeleton skeleton-text mx-auto" style="width: 60%;"></div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="category-card text-center p-4 rounded-4 bg-light h-100">
+                        <div class="skeleton skeleton-img rounded-circle mx-auto mb-3" style="width: 60px; height: 60px;"></div>
+                        <div class="skeleton skeleton-text mx-auto" style="width: 60%;"></div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="category-card text-center p-4 rounded-4 bg-light h-100">
+                        <div class="skeleton skeleton-img rounded-circle mx-auto mb-3" style="width: 60px; height: 60px;"></div>
+                        <div class="skeleton skeleton-text mx-auto" style="width: 60%;"></div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="category-card text-center p-4 rounded-4 bg-light h-100">
+                        <div class="skeleton skeleton-img rounded-circle mx-auto mb-3" style="width: 60px; height: 60px;"></div>
+                        <div class="skeleton skeleton-text mx-auto" style="width: 60%;"></div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="category-card text-center p-4 rounded-4 bg-light h-100">
+                        <div class="skeleton skeleton-img rounded-circle mx-auto mb-3" style="width: 60px; height: 60px;"></div>
+                        <div class="skeleton skeleton-text mx-auto" style="width: 60%;"></div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="category-card text-center p-4 rounded-4 bg-light h-100">
+                        <div class="skeleton skeleton-img rounded-circle mx-auto mb-3" style="width: 60px; height: 60px;"></div>
+                        <div class="skeleton skeleton-text mx-auto" style="width: 60%;"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -142,7 +176,55 @@
             </div>
             
             <div class="row g-4" id="featured-products">
-                <!-- Loaded Dynamically -->
+                <!-- Skeletons -->
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="product-card-premium">
+                        <div class="product-image-container" style="height: 200px; background-color: #eee;">
+                            <div class="skeleton skeleton-img w-100 h-100"></div>
+                        </div>
+                        <div class="p-3 p-md-4">
+                            <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
+                            <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="product-card-premium">
+                        <div class="product-image-container" style="height: 200px; background-color: #eee;">
+                            <div class="skeleton skeleton-img w-100 h-100"></div>
+                        </div>
+                        <div class="p-3 p-md-4">
+                            <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
+                            <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="product-card-premium">
+                        <div class="product-image-container" style="height: 200px; background-color: #eee;">
+                            <div class="skeleton skeleton-img w-100 h-100"></div>
+                        </div>
+                        <div class="p-3 p-md-4">
+                            <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
+                            <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="product-card-premium">
+                        <div class="product-image-container" style="height: 200px; background-color: #eee;">
+                            <div class="skeleton skeleton-img w-100 h-100"></div>
+                        </div>
+                        <div class="p-3 p-md-4">
+                            <div class="skeleton skeleton-text mb-2" style="width: 80%;"></div>
+                            <div class="skeleton skeleton-text mb-2" style="width: 40%;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="text-center mt-5">
@@ -259,13 +341,13 @@
                 container.innerHTML = featured.map((p, index) => `
                     <div class="col-6 col-md-4 col-lg-3 fade-up" style="animation-delay: ${index * 0.1}s">
                         <div class="product-card-premium">
-                            <div class="product-image-container">
+                            <div class="product-image-container" style="cursor: pointer;" onclick="trackProductClick(${p.vendor_id}, ${p.id}); window.location.href='product_details.html?id=${p.id}'">
                                 <img src="${p.image || 'https://via.placeholder.com/300'}" alt="${p.name}">
                                 <span class="badge bg-white text-dark position-absolute top-0 start-0 m-3 shadow-sm fw-bold">New</span>
                             </div>
                             <div class="p-3 p-md-4">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h5 class="fw-bold text-dark mb-0 text-truncate small-md" style="max-width: 70%;">${p.name}</h5>
+                                    <h5 class="fw-bold text-dark mb-0 text-truncate small-md" style="max-width: 70%; cursor: pointer;" onclick="trackProductClick(${p.vendor_id}, ${p.id}); window.location.href='product_details.html?id=${p.id}'">${p.name}</h5>
                                     <h5 class="text-primary fw-bold mb-0 small-md">₦${parseFloat(p.price).toLocaleString()}</h5>
                                 </div>
                                 <p class="text-muted small mb-3 text-truncate d-none d-md-block">${p.description || 'Premium quality gadget verified by NIECOMM.'}</p>

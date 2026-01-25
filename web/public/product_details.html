@@ -29,7 +29,7 @@
                         <!-- Loaded dynamically -->
                         <div class="carousel-item active">
                             <div class="d-flex align-items-center justify-content-center bg-light" style="height: 400px;">
-                                <div class="spinner-border text-primary" role="status"></div>
+                                <div class="skeleton skeleton-img w-100 h-100"></div>
                             </div>
                         </div>
                     </div>
@@ -46,23 +46,23 @@
 
             <!-- Product Info -->
             <div class="col-lg-6">
-                <h1 class="fw-bold display-6 mb-2" id="product-name">...</h1>
+                <h1 class="fw-bold display-6 mb-2" id="product-name"><div class="skeleton skeleton-text" style="width: 60%; height: 40px;"></div></h1>
                 <div class="mb-3">
                     <span class="badge bg-success" id="stock-badge">In Stock</span>
-                    <span class="text-muted ms-2" id="warranty-info"><i class="fas fa-shield-alt me-1"></i> Warranty: 12 Months</span>
+                    <span class="text-muted ms-2" id="warranty-info"><div class="skeleton skeleton-text d-inline-block" style="width: 100px;"></div></span>
                 </div>
-                <h2 class="text-primary fw-bold mb-4" id="product-price">...</h2>
+                <h2 class="text-primary fw-bold mb-4" id="product-price"><div class="skeleton skeleton-text" style="width: 30%; height: 30px;"></div></h2>
                 
                 <!-- Vendor & Location Info -->
                 <div class="card border-0 bg-light-subtle mb-4 rounded-3">
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-2">
-                            <h6 class="mb-0 me-2 fw-bold" id="vendor-name">...</h6>
+                            <h6 class="mb-0 me-2 fw-bold" id="vendor-name"><div class="skeleton skeleton-text" style="width: 150px;"></div></h6>
                             <span id="vendor-verified-badge"></span>
                         </div>
                         <p class="mb-1 small text-muted">
                             <i class="fas fa-map-marker-alt me-1 text-danger"></i> 
-                            <span id="product-location">Loading location...</span>
+                            <span id="product-location"><div class="skeleton skeleton-text d-inline-block" style="width: 120px;"></div></span>
                         </p>
                         <p class="mb-0 small text-success" id="shop-indicator" style="display: none;">
                             <i class="fas fa-store me-1"></i> Physical Shop Verified
@@ -80,7 +80,7 @@
                 </div>
 
                 <!-- Reviews Section -->
-                <div class="card border-0 bg-light rounded-4 p-4">
+                <div class="card border-0 bg-light rounded-4 p-4 mb-5">
                     <h4 class="fw-bold mb-3">Reviews</h4>
                     <div id="reviews-container" class="mb-3" style="max-height: 300px; overflow-y: auto;">
                         <p class="text-muted">No reviews yet.</p>
@@ -101,6 +101,14 @@
                         <button type="submit" class="btn btn-dark btn-sm rounded-pill">Post Review</button>
                     </form>
                 </div>
+
+                <!-- Related Products -->
+                <div id="related-products-section" style="display: none;">
+                    <h4 class="fw-bold mb-4">You May Also Like</h4>
+                    <div class="row g-3" id="related-products-container">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -120,19 +128,24 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/related-products.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             loadNav();
             
-            const params = new URLSearchParams(window.location.search);
-            const productId = params.get('id');
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('id');
             
             if (!productId) {
                 window.location.href = 'products.html';
                 return;
             }
 
+            // Load Related Products (External File)
+            loadRelatedProducts(productId);
+
             try {
+                // Fetch Product Details
                 const res = await fetch(`/api/products/${productId}`);
                 if (!res.ok) throw new Error('Product not found');
                 const product = await res.json();
@@ -149,6 +162,11 @@
                 // Vendor Info
                 document.getElementById('vendor-name').textContent = product.vendor_name || 'Unknown Vendor';
                 document.getElementById('product-location').textContent = `${product.state_name || 'Nationwide'}${product.city_name ? ', ' + product.city_name : ''}`;
+
+                // Load Related Products (Same Vendor)
+                if (product.vendor_id) {
+                    loadRelatedProducts(productId, product.vendor_id);
+                }
                 
                 if (product.distance_km !== null) {
                     const dist = parseFloat(product.distance_km);
@@ -206,13 +224,11 @@
                     `).join('');
                 }
 
-                // Add to Cart
-                document.getElementById('add-to-cart-btn').onclick = () => {
+                // Add to Cart Logic
+                const addToCartBtn = document.getElementById('add-to-cart-btn');
+                addToCartBtn.onclick = () => {
                     const qty = parseInt(document.getElementById('qty-input').value);
-                    const item = { ...product, quantity: qty }; // Override qty
-                    addToCart(item); // Function from main.js (assuming it handles qty override or we need to check)
-                    // Note: standard addToCart usually takes 1, we might need to modify it or call it loop
-                    // Actually, let's just check main.js addToCart logic later.
+                    addToCart(product, qty);
                 };
 
                 // Post Review
@@ -239,7 +255,7 @@
                     }
 
                     try {
-                        const revRes = await fetch('/api/reviews', {
+                        const revRes = await fetch('/api/reviews', { 
                             method: 'POST',
                             body: formData // Fetch sets Content-Type to multipart/form-data automatically
                         });
@@ -259,9 +275,23 @@
 
             } catch (err) {
                 console.error(err);
-                document.querySelector('.container').innerHTML = '<div class="alert alert-danger text-center">Product not found</div>';
+                document.querySelector('.container').innerHTML = '<div class="alert alert-danger mt-5">Failed to load product details</div>';
             }
         });
+
+        function trackProductClick(vendorId, productId) {
+             const currentUser = JSON.parse(localStorage.getItem('user'));
+             fetch('/api/analytics/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vendor_id: vendorId,
+                    user_id: currentUser ? currentUser.id : null,
+                    event_type: 'click',
+                    product_id: productId
+                })
+            }).catch(console.error);
+        }
     </script>
 </body>
 </html>

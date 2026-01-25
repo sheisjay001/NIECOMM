@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Disputes - NIECOMM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-theme="light">
+    <div id="nav-placeholder"></div>
+
+    <section class="py-5">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>My Disputes</h2>
+                <a href="orders.html" class="btn btn-outline-primary">Report New Issue</a>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">ID</th>
+                                    <th>Order #</th>
+                                    <th>Vendor</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th class="text-end pe-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="disputes-list">
+                                <!-- Skeleton Loading -->
+                                <tr>
+                                    <td class="ps-4"><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td><div class="skeleton skeleton-text w-75"></div></td>
+                                    <td><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td><div class="skeleton skeleton-text w-75"></div></td>
+                                    <td><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td class="pe-4"><div class="skeleton skeleton-rect ms-auto" style="width: 80px; height: 32px;"></div></td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4"><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td><div class="skeleton skeleton-text w-75"></div></td>
+                                    <td><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td><div class="skeleton skeleton-text w-75"></div></td>
+                                    <td><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td class="pe-4"><div class="skeleton skeleton-rect ms-auto" style="width: 80px; height: 32px;"></div></td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4"><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td><div class="skeleton skeleton-text w-75"></div></td>
+                                    <td><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td><div class="skeleton skeleton-text w-75"></div></td>
+                                    <td><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td><div class="skeleton skeleton-text w-50"></div></td>
+                                    <td class="pe-4"><div class="skeleton skeleton-rect ms-auto" style="width: 80px; height: 32px;"></div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="empty-state" class="text-center py-5 d-none">
+                <div class="mb-3 text-muted opacity-50">
+                    <i class="fas fa-check-circle fa-4x"></i>
+                </div>
+                <h5>No Disputes Found</h5>
+                <p class="text-muted">You have no open disputes at this time.</p>
+                <a href="products.html" class="btn btn-primary mt-3">Continue Shopping</a>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadNav();
+            const user = checkAuth();
+            if (!user) return;
+
+            try {
+                const res = await fetch(`/api/disputes?user_id=${user.id}`);
+                const disputes = await res.json();
+                const tbody = document.getElementById('disputes-list');
+                const emptyState = document.getElementById('empty-state');
+                const card = document.querySelector('.card');
+
+                if (disputes.length === 0) {
+                    card.style.display = 'none';
+                    emptyState.classList.remove('d-none');
+                    return;
+                }
+
+                tbody.innerHTML = disputes.map(d => `
+                    <tr>
+                        <td class="ps-4 fw-bold">#${d.id}</td>
+                        <td><a href="#" onclick="viewOrder('${d.order_id}')">#${d.order_number || 'N/A'}</a></td>
+                        <td>${d.vendor_name || 'Vendor'}</td>
+                        <td>${d.reason}</td>
+                        <td><span class="badge bg-${getStatusColor(d.status)}">${d.status}</span></td>
+                        <td>${new Date(d.created_at).toLocaleDateString()}</td>
+                        <td class="text-end pe-4">
+                            <a href="dispute_details.html?id=${d.id}" class="btn btn-sm btn-primary">
+                                View Details
+                            </a>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (err) {
+                console.error('Error loading disputes:', err);
+                document.getElementById('disputes-list').innerHTML = `
+                    <tr><td colspan="7" class="text-center text-danger py-4">Failed to load disputes.</td></tr>
+                `;
+            }
+        });
+
+        function getStatusColor(status) {
+            if (status === 'open') return 'warning';
+            if (status === 'resolved') return 'success';
+            if (status === 'closed') return 'secondary';
+            return 'primary';
+        }
+
+        function viewOrder(id) {
+            // Ideally link to order details
+            alert('Order details not linked yet in this view.');
+        }
+    </script>
+</body>
+</html>

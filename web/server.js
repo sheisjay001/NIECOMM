@@ -432,6 +432,69 @@ async function initDb() {
             FOREIGN KEY (product_id) REFERENCES products(id)
         )`);
 
+        // Audit Logs Table
+        await db.query(`CREATE TABLE IF NOT EXISTS audit_logs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            admin_id INT NOT NULL,
+            action VARCHAR(50) NOT NULL,
+            details TEXT,
+            ip_address VARCHAR(45),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (admin_id) REFERENCES users(id)
+        )`);
+
+        // Analytics Events Table
+        await db.query(`CREATE TABLE IF NOT EXISTS analytics_events (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            vendor_id INT NOT NULL,
+            user_id INT,
+            event_type ENUM('profile_view', 'product_view', 'click') NOT NULL,
+            product_id INT,
+            ip_address VARCHAR(45),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vendor_id) REFERENCES users(id),
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+        )`);
+
+        // Disputes Table
+        await db.query(`CREATE TABLE IF NOT EXISTS disputes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            order_id INT NOT NULL,
+            opened_by INT NOT NULL,
+            vendor_id INT NOT NULL,
+            reason TEXT NOT NULL,
+            description TEXT NOT NULL,
+            status ENUM('open', 'resolved', 'closed') DEFAULT 'open',
+            resolution TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (order_id) REFERENCES orders(id),
+            FOREIGN KEY (opened_by) REFERENCES users(id),
+            FOREIGN KEY (vendor_id) REFERENCES users(id)
+        )`);
+
+        // Dispute Messages Table
+        await db.query(`CREATE TABLE IF NOT EXISTS dispute_messages (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            dispute_id INT NOT NULL,
+            sender_id INT NOT NULL,
+            message TEXT NOT NULL,
+            is_admin BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (dispute_id) REFERENCES disputes(id),
+            FOREIGN KEY (sender_id) REFERENCES users(id)
+        )`);
+
+        // Carts Table (Persistent Cart)
+        await db.query(`CREATE TABLE IF NOT EXISTS carts (
+            user_id INT PRIMARY KEY,
+            items JSON,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )`);
+
+
+
         // Vendor Profiles (Bank Details) - Extending Users or separate table
         // We will add columns to users table for simplicity as per current structure
         try {
@@ -458,10 +521,31 @@ async function getDb() {
     return await mysql.createConnection(dbConfig);
 }
 
+async function createAuditLog(adminId, action, details, req) {
+    try {
+        const conn = await getDb();
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        await conn.execute(
+            'INSERT INTO audit_logs (admin_id, action, details, ip_address) VALUES (?, ?, ?, ?)',
+            [adminId, action, JSON.stringify(details), ip]
+        );
+        await conn.end();
+    } catch (e) {
+        console.error('Audit Log Error:', e);
+    }
+}
+
 // API Routes
 
+// Login Rate Limiter
+const loginLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 5,
+    message: { error: 'Too many login attempts, please try again after 1 minute' }
+});
+
 // Login
-app.post('/api/auth/login', async ( req, res) => {
+app.post('/api/auth/login', loginLimiter, async ( req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
         return res.status(400).json({ error: 'Please enter email and password' });
@@ -473,19 +557,86 @@ app.post('/api/auth/login', async ( req, res) => {
             'SELECT u.id, u.username, u.email, u.password, u.role_id, r.name as role FROM users u JOIN roles r ON u.role_id = r.id WHERE u.email = ?',
             [email]
         );
-        await conn.end();
 
         if (rows.length === 0) {
+            await conn.end();
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
         const user = rows[0];
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            await conn.end();
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        // 2FA for Vendors and Admins
+        if (user.role === 'vendor' || user.role === 'admin') {
+            const otp = generateOTP();
+            const expiresAt = new Date(Date.now() + 10 * 60000); // 10 mins
+            await conn.execute("UPDATE users SET otp_code = ?, otp_expires_at = ? WHERE id = ?", [otp, expiresAt, user.id]);
+            
+            // SIMULATION: Log OTP
+            console.log(`[2FA OTP] For ${user.email}: ${otp}`); 
+            
+            await conn.end();
+            return res.json({ 
+                '2fa_required': true, 
+                email: user.email,
+                message: 'OTP sent to your email (Check Console)' 
+            });
+        }
+
+        await conn.end();
+
         // Return user info (in a real app, send a token)
+        res.json({
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Verify 2FA OTP
+app.post('/api/auth/verify-2fa', loginLimiter, async (req, res) => {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ error: 'Email and OTP required' });
+
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(
+            'SELECT u.id, u.username, u.email, u.password, u.role_id, r.name as role, u.otp_code, u.otp_expires_at FROM users u JOIN roles r ON u.role_id = r.id WHERE u.email = ?',
+            [email]
+        );
+        
+        if (rows.length === 0) {
+            await conn.end();
+            return res.status(400).json({ error: 'User not found' });
+        }
+        
+        const user = rows[0];
+        
+        if (user.otp_code !== otp) {
+            await conn.end();
+            return res.status(400).json({ error: 'Invalid OTP' });
+        }
+        
+        if (new Date() > new Date(user.otp_expires_at)) {
+            await conn.end();
+            return res.status(400).json({ error: 'OTP expired' });
+        }
+        
+        // Clear OTP
+        await conn.execute("UPDATE users SET otp_code = NULL, otp_expires_at = NULL WHERE id = ?", [user.id]);
+        await conn.end();
+        
         res.json({
             user: {
                 id: user.id,
@@ -606,7 +757,7 @@ app.get('/api/categories', async (req, res) => {
 app.get('/api/products', async (req, res) => {
     try {
         const conn = await getDb();
-        const { state_id, city_id, lga_id, user_lat, user_lng } = req.query;
+        const { state_id, city_id, lga_id, user_lat, user_lng, vendor_id, search, ids } = req.query;
 
         // Ensure table exists
         await conn.query(`CREATE TABLE IF NOT EXISTS products (
@@ -653,6 +804,17 @@ app.get('/api/products', async (req, res) => {
         const params = [];
         const conditions = [];
 
+        if (ids) {
+            const idList = ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+            if (idList.length > 0) {
+                // Use FIND_IN_SET or simpler IN clause
+                // Since mysql2 doesn't support array parameters directly for IN, we have to construct placeholders
+                const placeholders = idList.map(() => '?').join(',');
+                conditions.push(`p.id IN (${placeholders})`);
+                params.push(...idList);
+            }
+        }
+
         if (state_id) {
             conditions.push('u.state_id = ?');
             params.push(state_id);
@@ -664,6 +826,14 @@ app.get('/api/products', async (req, res) => {
         if (lga_id) {
             conditions.push('u.lga_id = ?');
             params.push(lga_id);
+        }
+        if (vendor_id) {
+            conditions.push('p.vendor_id = ?');
+            params.push(vendor_id);
+        }
+        if (search) {
+            conditions.push('(p.name LIKE ? OR p.description LIKE ?)');
+            params.push(`%${search}%`, `%${search}%`);
         }
         
         if (conditions.length > 0) {
@@ -682,6 +852,102 @@ app.get('/api/products', async (req, res) => {
         const [rows] = await conn.execute(query, params);
         await conn.end();
         res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// --- Cart API (Sync & Recovery) ---
+
+// Sync Cart
+app.post('/api/cart', async (req, res) => {
+    const { user_id, items } = req.body;
+    if (!user_id || !items) return res.status(400).json({ error: 'Missing required fields' });
+
+    try {
+        const conn = await getDb();
+        // Upsert cart
+        await conn.execute(
+            'INSERT INTO carts (user_id, items) VALUES (?, ?) ON DUPLICATE KEY UPDATE items = VALUES(items), updated_at = NOW()',
+            [user_id, JSON.stringify(items)]
+        );
+        await conn.end();
+        res.json({ message: 'Cart synced' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get Cart
+app.get('/api/cart/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute('SELECT items FROM carts WHERE user_id = ?', [userId]);
+        await conn.end();
+        
+        if (rows.length > 0) {
+            res.json(JSON.parse(rows[0].items));
+        } else {
+            res.json([]);
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Get Abandoned Carts Stats
+app.get('/api/admin/abandoned-carts', async (req, res) => {
+    try {
+        const conn = await getDb();
+        // Find carts updated more than 1 hour ago
+        const [rows] = await conn.execute(`
+            SELECT c.user_id, c.updated_at, u.email, u.username, c.items
+            FROM carts c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.updated_at < DATE_SUB(NOW(), INTERVAL 1 HOUR)
+            ORDER BY c.updated_at DESC
+        `);
+        await conn.end();
+        
+        // Calculate potential value
+        const carts = rows.map(row => {
+            const items = JSON.parse(row.items || '[]');
+            const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            return { ...row, items, total };
+        });
+
+        res.json(carts);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Notify Abandoned Carts
+app.post('/api/admin/abandoned-carts/notify', async (req, res) => {
+    try {
+        const conn = await getDb();
+        // Get carts > 1 hour old
+        const [rows] = await conn.execute(`
+            SELECT c.user_id, u.email, u.username
+            FROM carts c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.updated_at < DATE_SUB(NOW(), INTERVAL 1 HOUR)
+        `);
+        await conn.end();
+
+        let count = 0;
+        for (const row of rows) {
+            // SIMULATION: Send Email
+            console.log(`[EMAIL SIMULATION] Sending Abandoned Cart Reminder to ${row.email}: "Hi ${row.username}, you left items in your cart! Complete your purchase now."`);
+            count++;
+        }
+
+        res.json({ message: `Sent reminders to ${count} users.` });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -921,6 +1187,76 @@ app.get('/api/vendor/dashboard', async (req, res) => {
     }
 });
 
+// Vendor Analytics
+app.get('/api/vendor/analytics', async (req, res) => {
+    const vendorId = req.query.vendor_id;
+    if (!vendorId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const conn = await getDb();
+
+        // 1. Get Counts
+        const [counts] = await conn.execute(`
+            SELECT 
+                SUM(CASE WHEN event_type = 'profile_view' THEN 1 ELSE 0 END) as profile_views,
+                SUM(CASE WHEN event_type = 'product_view' THEN 1 ELSE 0 END) as product_views,
+                SUM(CASE WHEN event_type = 'click' THEN 1 ELSE 0 END) as clicks
+            FROM analytics_events
+            WHERE vendor_id = ?
+        `, [vendorId]);
+
+        // 2. Get Recent Activity
+        const [activity] = await conn.execute(`
+            SELECT ae.event_type as metric_type, ae.created_at, ae.ip_address, p.name as product_name
+            FROM analytics_events ae
+            LEFT JOIN products p ON ae.product_id = p.id
+            WHERE ae.vendor_id = ?
+            ORDER BY ae.created_at DESC
+            LIMIT 20
+        `, [vendorId]);
+
+        await conn.end();
+
+        res.json({
+            profile_views: counts[0].profile_views || 0,
+            product_views: counts[0].product_views || 0,
+            clicks: counts[0].clicks || 0,
+            recent_activity: activity
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Track Analytics Event
+app.post('/api/analytics/track', async (req, res) => {
+    const { vendor_id, user_id, event_type, product_id } = req.body;
+    // event_type: 'profile_view', 'product_view', 'click'
+    
+    if (!vendor_id || !event_type) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const conn = await getDb();
+        // Simple IP extraction (works for local/simple proxies)
+        let ip_address = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        if (ip_address && ip_address.includes(',')) ip_address = ip_address.split(',')[0].trim();
+        if (ip_address === '::1') ip_address = '127.0.0.1'; // Normalize local IPv6
+        
+        await conn.execute(
+            'INSERT INTO analytics_events (vendor_id, user_id, event_type, product_id, ip_address) VALUES (?, ?, ?, ?, ?)',
+            [vendor_id, user_id || null, event_type, product_id || null, ip_address]
+        );
+        await conn.end();
+        res.json({ message: 'Event tracked' });
+    } catch (err) {
+        console.error('Tracking Error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Vendor Products List
 app.get('/api/vendor/products', async (req, res) => {
     const userId = req.query.user_id;
@@ -1089,7 +1425,7 @@ app.get('/api/admin/verifications', async (req, res) => {
 
 // Admin: Approve/Reject Verification
 app.post('/api/admin/verifications/:id', async (req, res) => {
-    const { status, user_id } = req.body; // status: 'approved' | 'rejected'
+    const { status, user_id, admin_id } = req.body; // status: 'approved' | 'rejected'
     if (!['approved', 'rejected'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
     try {
@@ -1100,6 +1436,9 @@ app.post('/api/admin/verifications/:id', async (req, res) => {
             await conn.execute('UPDATE users SET is_verified = TRUE WHERE id = ?', [user_id]);
         }
         
+        // Log Action
+        await createAuditLog(admin_id || 1, `vendor_verification_${status}`, { verification_id: req.params.id, vendor_id: user_id }, req);
+
         await conn.end();
         res.json({ message: `Verification ${status}` });
     } catch (err) {
@@ -1176,6 +1515,15 @@ app.post('/api/admin/orders/:id/release', async (req, res) => {
         // 3. Update Order Status
         await conn.execute("UPDATE orders SET payout_status = 'completed' WHERE id = ?", [req.params.id]);
 
+        // Log Action
+        const adminId = req.body.admin_id || 1;
+        await createAuditLog(adminId, 'escrow_release', { 
+            order_id: req.params.id, 
+            vendor_id: order.vendor_id,
+            amount: order.total_amount,
+            order_number: order.order_number
+        }, req);
+
         await conn.end();
         res.json({ message: 'Funds released to vendor wallet' });
 
@@ -1225,6 +1573,13 @@ app.post('/api/admin/withdrawals/:id', async (req, res) => {
         await conn.execute('UPDATE wallet_transactions SET status = ?, description = CONCAT(description, ?) WHERE id = ?', 
             [status, admin_note ? ` - ${admin_note}` : '', req.params.id]);
         
+        // Log Action
+        const adminId = req.body.admin_id || 1;
+        await createAuditLog(adminId, `withdrawal_${status}`, { 
+            withdrawal_id: req.params.id, 
+            admin_note: admin_note 
+        }, req);
+
         await conn.end();
         res.json({ message: `Withdrawal ${status}` });
     } catch (err) {
@@ -1262,6 +1617,24 @@ app.post('/api/admin/returns/:id', async (req, res) => {
         await conn.execute('UPDATE returns SET status = ?, admin_notes = ? WHERE id = ?', [status, admin_notes, req.params.id]);
         await conn.end();
         res.json({ message: 'Return status updated' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Get Audit Logs
+app.get('/api/admin/audit-logs', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(`
+            SELECT al.*, u.username as admin_name 
+            FROM audit_logs al
+            LEFT JOIN users u ON al.admin_id = u.id
+            ORDER BY al.created_at DESC LIMIT 100
+        `);
+        await conn.end();
+        res.json(rows);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -1382,7 +1755,7 @@ app.get('/api/states', async (req, res) => {
 // Place Order
 app.post('/api/orders', upload.single('proof_of_payment'), async (req, res) => {
     try {
-        let { user_id, shipping_address, cart, payment_method } = req.body;
+        let { user_id, shipping_address, cart, payment_method, guest_info } = req.body;
         
         // Parse cart if it's a string (FormData)
         if (typeof cart === 'string') {
@@ -1393,11 +1766,44 @@ app.post('/api/orders', upload.single('proof_of_payment'), async (req, res) => {
             }
         }
 
-        if (!user_id || !shipping_address || !cart || cart.length === 0) {
-            return res.status(400).json({ error: 'Invalid order data' });
+        const conn = await getDb();
+        let redirect = null;
+
+        // Handle Guest Checkout
+        if ((!user_id || user_id === 'undefined') && guest_info) {
+             try {
+                 const guest = typeof guest_info === 'string' ? JSON.parse(guest_info) : guest_info;
+                 
+                 // Check if email exists
+                 const [users] = await conn.execute('SELECT id FROM users WHERE email = ?', [guest.email]);
+                 if (users.length > 0) {
+                     await conn.end();
+                     return res.status(400).json({ error: 'An account with this email already exists. Please login.' });
+                 }
+
+                 // Create Guest User
+                 const password = Math.random().toString(36).slice(-8);
+                 const hashedPassword = await bcrypt.hash(password, 10);
+                 
+                 const [result] = await conn.execute(
+                     'INSERT INTO users (username, email, password, role_id, phone, created_at) VALUES (?, ?, ?, 2, ?, NOW())',
+                     [guest.name, guest.email, hashedPassword, guest.phone || null]
+                 );
+                 user_id = result.insertId;
+                 
+                 console.log(`[GUEST CHECKOUT] Created user ${guest.email} with password ${password}`);
+                 redirect = 'login.html'; 
+             } catch(e) {
+                 console.error('Guest creation failed', e);
+                 await conn.end();
+                 return res.status(500).json({ error: 'Failed to process guest checkout' });
+             }
         }
 
-        const conn = await getDb();
+        if (!user_id || !shipping_address || !cart || cart.length === 0) {
+            await conn.end();
+            return res.status(400).json({ error: 'Invalid order data' });
+        }
         
         // Calculate Total & Validate Items
         let total = 0;
@@ -1458,7 +1864,7 @@ app.post('/api/orders', upload.single('proof_of_payment'), async (req, res) => {
         }
 
         await conn.end();
-        res.status(201).json({ message: 'Order placed successfully', orderNumber });
+        res.status(201).json({ message: 'Order placed successfully', orderNumber, redirect });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to place order' });
@@ -1629,6 +2035,12 @@ app.get('/api/products/:id', async (req, res) => {
             WHERE p.id = ?
         `, [req.params.id]);
         
+        // Track View
+        if (rows.length > 0) {
+            // Async tracking (fire and forget)
+            createAnalyticsEvent(rows[0].vendor_id, 'product_view', rows[0].id, req);
+        }
+        
         await conn.end();
         
         if (rows.length === 0) return res.status(404).json({ error: 'Product not found' });
@@ -1686,6 +2098,145 @@ app.get('/api/wallet', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// Vendor Analytics
+app.get('/api/vendor/analytics', async (req, res) => {
+    const { vendor_id } = req.query;
+    if (!vendor_id) return res.status(400).json({ error: 'Vendor ID required' });
+
+    try {
+        const conn = await getDb();
+        
+        // Stats Overview
+        const [views] = await conn.execute(
+            "SELECT COUNT(*) as count FROM analytics_events WHERE vendor_id = ? AND event_type = 'profile_view'", 
+            [vendor_id]
+        );
+        const [productViews] = await conn.execute(
+            "SELECT COUNT(*) as count FROM analytics_events WHERE vendor_id = ? AND event_type = 'product_view'", 
+            [vendor_id]
+        );
+        const [clicks] = await conn.execute(
+            "SELECT COUNT(*) as count FROM analytics_events WHERE vendor_id = ? AND event_type = 'click'", 
+            [vendor_id]
+        );
+
+        // Recent Activity
+        const [activity] = await conn.execute(
+            `SELECT va.*, p.name as product_name 
+             FROM analytics_events va 
+             LEFT JOIN products p ON va.product_id = p.id 
+             WHERE va.vendor_id = ? 
+             ORDER BY va.created_at DESC LIMIT 10`,
+            [vendor_id]
+        );
+
+        await conn.end();
+        res.json({
+            profile_views: views[0].count,
+            product_views: productViews[0].count,
+            clicks: clicks[0].count,
+            recent_activity: activity
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// List Vendors
+app.get('/api/vendors', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(`
+            SELECT u.id, u.username, u.shop_address, u.is_verified, s.name as state_name, c.name as city_name,
+            (SELECT COUNT(*) FROM products WHERE vendor_id = u.id) as product_count
+            FROM users u
+            LEFT JOIN states s ON u.state_id = s.id
+            LEFT JOIN cities c ON u.city_id = c.id
+            WHERE u.role = 'vendor'
+            ORDER BY u.is_verified DESC, product_count DESC
+            LIMIT 50
+        `);
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get Single Vendor (Public)
+app.get('/api/vendors/:id', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [rows] = await conn.execute(`
+            SELECT u.id, u.username, u.shop_address, u.is_verified, s.name as state_name, c.name as city_name,
+            u.created_at,
+            (SELECT COUNT(*) FROM products WHERE vendor_id = u.id) as product_count
+            FROM users u
+            LEFT JOIN states s ON u.state_id = s.id
+            LEFT JOIN cities c ON u.city_id = c.id
+            WHERE u.id = ? AND u.role = 'vendor'
+        `, [req.params.id]);
+        
+        await conn.end();
+        
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Vendor not found' });
+        }
+        res.json(rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin Audit Logs
+app.get('/api/admin/audit-logs', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [logs] = await conn.execute(
+            `SELECT al.*, u.username as admin_name 
+             FROM audit_logs al 
+             JOIN users u ON al.admin_id = u.id 
+             ORDER BY al.created_at DESC LIMIT 50`
+        );
+        await conn.end();
+        res.json(logs);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Analytics Helper
+async function createAnalyticsEvent(vendorId, eventType, productId, req) {
+    if (!vendorId) return;
+    try {
+        const conn = await getDb();
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        await conn.execute(
+            'INSERT INTO analytics_events (vendor_id, event_type, product_id, ip_address) VALUES (?, ?, ?, ?)',
+            [vendorId, eventType, productId || null, ip]
+        );
+        await conn.end();
+    } catch (e) {
+        console.error('Analytics Error:', e);
+    }
+}
+
+// Track Events (Click, Profile View, Product View)
+app.post('/api/track/event', async (req, res) => {
+    const { vendor_id, type, product_id } = req.body;
+    if (!vendor_id || !type) return res.status(400).json({ error: 'Missing required fields' });
+    
+    const validTypes = ['click', 'profile_view', 'product_view'];
+    if (!validTypes.includes(type)) return res.status(400).json({ error: 'Invalid event type' });
+
+    createAnalyticsEvent(vendor_id, type, product_id, req);
+    res.json({ message: 'Event tracked' });
 });
 
 // Request Withdrawal (Requires Password)
@@ -1783,6 +2334,143 @@ app.post('/api/reviews', upload.single('reviewImage'), async (req, res) => {
 
 // Add Review (Old - Deprecated/Replaced)
 // app.post('/api/products/:id/reviews', ...
+
+// --- Global Search & Wishlist APIs (New) ---
+
+// Predictive Search
+app.get('/api/products/search-suggestions', async (req, res) => {
+    const { q } = req.query;
+    if (!q || q.length < 2) return res.json([]);
+    
+    try {
+        const conn = await getDb();
+        const term = `%${q}%`;
+        const [rows] = await conn.execute(
+            `SELECT id, name, 'product' as type FROM products WHERE name LIKE ? LIMIT 5
+             UNION
+             SELECT id, name, 'category' as type FROM categories WHERE name LIKE ? LIMIT 3`,
+            [term, term]
+        );
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Related Products
+app.get('/api/products/:id/related', async (req, res) => {
+    const productId = req.params.id;
+    try {
+        const conn = await getDb();
+        const [prod] = await conn.execute('SELECT category_id FROM products WHERE id = ?', [productId]);
+        if (prod.length === 0) {
+             await conn.end();
+             return res.json([]);
+        }
+        
+        const catId = prod[0].category_id;
+        
+        const [rows] = await conn.execute(
+            `SELECT p.*, s.name as state_name, c.name as city_name 
+             FROM products p 
+             JOIN users u ON p.vendor_id = u.id 
+             LEFT JOIN states s ON u.state_id = s.id 
+             LEFT JOIN cities c ON u.city_id = c.id
+             WHERE p.category_id = ? AND p.id != ? 
+             ORDER BY RAND() LIMIT 4`,
+            [catId, productId]
+        );
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Analytics Tracking
+app.post('/api/analytics/track', async (req, res) => {
+    const { vendor_id, product_id, metric_type, viewer_id } = req.body;
+    try {
+        const conn = await getDb();
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        await conn.execute(
+            'INSERT INTO vendor_analytics (vendor_id, product_id, metric_type, viewer_id, ip_address) VALUES (?, ?, ?, ?, ?)',
+            [vendor_id, product_id || null, metric_type, viewer_id || null, ip]
+        );
+        await conn.end();
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Wishlist API
+app.get('/api/wishlist', async (req, res) => {
+    const userId = req.query.user_id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const conn = await getDb();
+        await conn.query(`CREATE TABLE IF NOT EXISTS wishlist (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            product_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_item (user_id, product_id)
+        )`);
+
+        const [rows] = await conn.execute(`
+            SELECT w.id as wishlist_id, p.*, u.username as vendor_name, u.shop_address, u.is_verified
+            FROM wishlist w
+            JOIN products p ON w.product_id = p.id
+            JOIN users u ON p.vendor_id = u.id
+            WHERE w.user_id = ?
+            ORDER BY w.created_at DESC
+        `, [userId]);
+        
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/wishlist', async (req, res) => {
+    const { user_id, product_id } = req.body;
+    try {
+        const conn = await getDb();
+        await conn.execute('INSERT INTO wishlist (user_id, product_id) VALUES (?, ?)', [user_id, product_id]);
+        await conn.end();
+        res.json({ message: 'Added to wishlist' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/wishlist/:id', async (req, res) => {
+    const { user_id } = req.query; // Security check
+    try {
+        const conn = await getDb();
+        await conn.execute('DELETE FROM wishlist WHERE id = ? AND user_id = ?', [req.params.id, user_id]);
+        await conn.end();
+        res.json({ message: 'Removed from wishlist' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
 
 // Submit Return Request
 app.post('/api/returns', async (req, res) => {
@@ -2202,6 +2890,170 @@ app.get('/', (req, res) => {
 // Health check / Version endpoint
 app.get('/api/version', (req, res) => {
     res.json({ version: '1.2.0', updated: new Date().toISOString() });
+});
+
+// --- Dispute Resolution API ---
+
+// Create Dispute
+app.post('/api/disputes', async (req, res) => {
+    const { order_id, opened_by, reason, description } = req.body;
+    if (!order_id || !opened_by || !reason) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const conn = await getDb();
+        
+        // 1. Get Vendor ID from Order
+        const [items] = await conn.execute(`
+            SELECT p.vendor_id 
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            WHERE oi.order_id = ?
+            LIMIT 1
+        `, [order_id]);
+
+        if (items.length === 0) {
+            await conn.end();
+            return res.status(404).json({ error: 'Order items not found' });
+        }
+        const vendor_id = items[0].vendor_id;
+
+        // Check if dispute already exists for this order
+        const [existing] = await conn.execute('SELECT id FROM disputes WHERE order_id = ? AND status = "open"', [order_id]);
+        if (existing.length > 0) {
+            await conn.end();
+            return res.status(400).json({ error: 'An open dispute already exists for this order' });
+        }
+
+        const [result] = await conn.execute(
+            'INSERT INTO disputes (order_id, opened_by, vendor_id, reason, description, status) VALUES (?, ?, ?, ?, ?, "open")',
+            [order_id, opened_by, vendor_id, reason, description]
+        );
+
+        await conn.end();
+        res.json({ message: 'Dispute opened successfully', dispute_id: result.insertId });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get Disputes (Admin sees all, User/Vendor sees theirs)
+app.get('/api/disputes', async (req, res) => {
+    const { user_id, role } = req.query;
+    if (!user_id || !role) return res.status(401).json({ error: 'Unauthorized' });
+
+    try {
+        const conn = await getDb();
+        let query = `
+            SELECT d.*, o.order_number, u.username as opener_name, v.username as vendor_name
+            FROM disputes d
+            JOIN orders o ON d.order_id = o.id
+            JOIN users u ON d.opened_by = u.id
+            JOIN users v ON d.vendor_id = v.id
+        `;
+        const params = [];
+
+        if (role === 'admin') {
+            // Admin sees all
+        } else if (role === 'vendor') {
+            query += ' WHERE d.vendor_id = ?';
+            params.push(user_id);
+        } else {
+            query += ' WHERE d.opened_by = ?';
+            params.push(user_id);
+        }
+
+        query += ' ORDER BY d.created_at DESC';
+
+        const [rows] = await conn.execute(query, params);
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get Single Dispute Details & Messages
+app.get('/api/disputes/:id', async (req, res) => {
+    try {
+        const conn = await getDb();
+        const [disputes] = await conn.execute(`
+            SELECT d.*, o.order_number, u.username as opener_name, v.username as vendor_name
+            FROM disputes d
+            JOIN orders o ON d.order_id = o.id
+            JOIN users u ON d.opened_by = u.id
+            JOIN users v ON d.vendor_id = v.id
+            WHERE d.id = ?
+        `, [req.params.id]);
+
+        if (disputes.length === 0) {
+            await conn.end();
+            return res.status(404).json({ error: 'Dispute not found' });
+        }
+
+        const [messages] = await conn.execute(`
+            SELECT m.*, u.username, r.name as role
+            FROM dispute_messages m
+            JOIN users u ON m.user_id = u.id
+            JOIN roles r ON u.role_id = r.id
+            WHERE m.dispute_id = ?
+            ORDER BY m.created_at ASC
+        `, [req.params.id]);
+
+        await conn.end();
+        res.json({ dispute: disputes[0], messages });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Add Dispute Message
+app.post('/api/disputes/:id/messages', async (req, res) => {
+    const { user_id, message } = req.body;
+    if (!user_id || !message) return res.status(400).json({ error: 'Missing fields' });
+
+    try {
+        const conn = await getDb();
+        await conn.execute(
+            'INSERT INTO dispute_messages (dispute_id, sender_id, message) VALUES (?, ?, ?)',
+            [req.params.id, user_id, message]
+        );
+        await conn.end();
+        res.json({ message: 'Message sent' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Resolve Dispute (Admin Only)
+app.post('/api/disputes/:id/resolve', async (req, res) => {
+    const { resolution, status, admin_id } = req.body; // status: 'resolved' or 'closed'
+    if (!resolution || !status) return res.status(400).json({ error: 'Missing fields' });
+
+    try {
+        const conn = await getDb();
+        
+        await conn.execute(
+            'UPDATE disputes SET status = ?, resolution = ?, updated_at = NOW() WHERE id = ?',
+            [status, resolution, req.params.id]
+        );
+
+        // Audit Log
+        if (admin_id) {
+             createAuditLog(admin_id, 'Resolve Dispute', { dispute_id: req.params.id, status, resolution }, req);
+        }
+
+        await conn.end();
+        res.json({ message: 'Dispute resolved' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 // Global Error Handler

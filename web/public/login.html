@@ -35,6 +35,22 @@
                                 <button type="submit" class="btn btn-primary py-2">Log In</button>
                             </div>
                         </form>
+
+                        <form id="otp-form" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-shield-alt me-2"></i>Security Check
+                                <div class="small mt-1">Please enter the OTP sent to your email.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">One-Time Password (OTP)</label>
+                                <input type="text" id="otp-code" class="form-control text-center fw-bold letter-spacing-2" maxlength="6" placeholder="000000" style="letter-spacing: 5px; font-size: 1.2rem;" required>
+                                <input type="hidden" id="otp-email">
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success py-2">Verify & Login</button>
+                                <button type="button" class="btn btn-link text-muted" onclick="location.reload()">Cancel</button>
+                            </div>
+                        </form>
                         
                         <div class="text-center mt-4">
                             <p class="mb-0">Don't have an account? <a href="register.html">Sign Up</a></p>
@@ -52,10 +68,10 @@
             .then(res => res.json())
             .then(data => {
                 document.getElementById('version-display').textContent = `v${data.version}`;
-                console.log('App Version:', data);
             })
             .catch(err => console.log('Version check failed', err));
 
+        // Login Handler
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
@@ -71,22 +87,15 @@
                 const data = await res.json();
                 
                 if (res.ok) {
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    alertBox.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
-                    
-                    // Role-based redirection
-                    let redirectUrl = '/';
-                    if (data.user.role === 'vendor') {
-                        redirectUrl = 'vendor_dashboard.html';
-                    } else if (data.user.role === 'user') {
-                        redirectUrl = 'user_dashboard.html';
-                    } else if (data.user.role === 'admin') {
-                        redirectUrl = 'admin_dashboard.html';
+                    if (data['2fa_required']) {
+                        // Switch to OTP form
+                        document.getElementById('login-form').style.display = 'none';
+                        document.getElementById('otp-form').style.display = 'block';
+                        document.getElementById('otp-email').value = data.email;
+                        alertBox.innerHTML = `<div class="alert alert-warning">${data.message}</div>`;
                     } else {
-                        redirectUrl = 'user_dashboard.html'; // Default fallback
+                        handleLoginSuccess(data.user);
                     }
-
-                    setTimeout(() => window.location.href = redirectUrl, 1500);
                 } else {
                     alertBox.innerHTML = `<div class="alert alert-danger">${data.error || 'Login failed'}</div>`;
                 }
@@ -94,6 +103,68 @@
                 alertBox.innerHTML = '<div class="alert alert-danger">An error occurred. Please try again.</div>';
             }
         });
+
+        // OTP Handler
+        document.getElementById('otp-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('otp-email').value;
+            const otp = document.getElementById('otp-code').value;
+            const alertBox = document.getElementById('alert-box');
+
+            try {
+                const res = await fetch('/api/auth/verify-2fa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, otp })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    handleLoginSuccess(data.user);
+                } else {
+                    alertBox.innerHTML = `<div class="alert alert-danger">${data.error || 'Verification failed'}</div>`;
+                }
+            } catch (err) {
+                alertBox.innerHTML = '<div class="alert alert-danger">An error occurred. Please try again.</div>';
+            }
+        });
+
+        async function handleLoginSuccess(user) {
+            const alertBox = document.getElementById('alert-box');
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            // Sync Cart
+            if (typeof syncCart === 'function') {
+                await syncCart();
+            }
+
+            alertBox.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
+            
+            // Check for redirect param
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectParam = urlParams.get('redirect');
+
+            // Role-based redirection
+            let redirectUrl = redirectParam || '/';
+            if (!redirectParam) {
+                if (user.role === 'vendor') {
+                    redirectUrl = 'vendor_dashboard.html';
+                } else if (user.role === 'user') {
+                    redirectUrl = 'user_dashboard.html';
+                } else if (user.role === 'admin') {
+                    redirectUrl = 'admin_dashboard.html';
+                } else {
+                    redirectUrl = 'user_dashboard.html';
+                }
+            }
+
+            setTimeout(() => window.location.href = redirectUrl, 1500);
+        }
+
+        function socialLogin(provider) {
+            // Simulation
+            alert(`${provider.charAt(0).toUpperCase() + provider.slice(1)} Login requires API keys. \n\nFor demo purposes, please use email login.`);
+        }
     </script>
 </body>
 </html>

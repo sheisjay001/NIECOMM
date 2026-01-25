@@ -70,7 +70,27 @@
                             <h5 class="fw-bold mb-4">Order Summary</h5>
                             
                             <div id="order-items-list" class="mb-3" style="max-height: 300px; overflow-y: auto;">
-                                <!-- Items injected here -->
+                                <!-- Skeleton Loading -->
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="skeleton skeleton-rect rounded me-3" style="width: 50px; height: 50px;"></div>
+                                        <div>
+                                            <div class="skeleton skeleton-text mb-1" style="width: 100px;"></div>
+                                            <div class="skeleton skeleton-text" style="width: 50px;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="skeleton skeleton-text" style="width: 60px;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="skeleton skeleton-rect rounded me-3" style="width: 50px; height: 50px;"></div>
+                                        <div>
+                                            <div class="skeleton skeleton-text mb-1" style="width: 100px;"></div>
+                                            <div class="skeleton skeleton-text" style="width: 50px;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="skeleton skeleton-text" style="width: 60px;"></div>
+                                </div>
                             </div>
                             
                             <hr>
@@ -214,9 +234,24 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             loadNav();
-            checkAuth();
+            // checkAuth(); // Allow guest checkout
+            prefillContact();
             loadCartSummary();
         });
+
+        function prefillContact() {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user) {
+                document.getElementById('contact_name').value = user.username || '';
+                document.getElementById('contact_email').value = user.email || '';
+                document.getElementById('contact_phone').value = user.phone || ''; // Assuming phone exists
+                // Make readonly or allow editing? Allow editing for shipping contact
+                document.getElementById('contact_email').readOnly = true; 
+                document.getElementById('create_account').closest('.col-md-6').style.display = 'none'; // Hide create account checkbox
+            } else {
+                document.getElementById('login-prompt').classList.remove('d-none');
+            }
+        }
 
         // Toggle Payment Method Styles
         document.querySelectorAll('input[name="paymentMethod"]').forEach(input => {
@@ -324,20 +359,36 @@
         }
 
         async function submitOrder() {
-            const user = checkAuth();
-            if (!user) return;
-
-            const address = document.getElementById('shipping_address').value;
-            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
-            const alertBox = document.getElementById('alert-box');
-
-            // Prepare FormData
+            // Get user if logged in
+            const user = JSON.parse(localStorage.getItem('user'));
+            // If not logged in, we rely on window.orderFormData which contains contact info
+            
             const formData = new FormData();
-            formData.append('user_id', user.id);
+            
+            // Get data from window.orderFormData (preferred) or DOM (fallback)
+            const orderData = window.orderFormData || {};
+            // Address logic: orderData.shipping_address already contains name/phone if guest, but let's be safe.
+            // Actually, handlePlaceOrder sets shipping_address to combined string.
+            const address = orderData.shipping_address || document.getElementById('shipping_address').value;
+            const paymentMethod = orderData.payment_method || document.querySelector('input[name="paymentMethod"]:checked').value;
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+            if (user) {
+                formData.append('user_id', user.id);
+            } else if (orderData.contact) {
+                // Guest Checkout
+                formData.append('guest_info', JSON.stringify(orderData.contact));
+            } else {
+                // Should not happen if validation works
+                alert('Please login or provide contact details');
+                window.location.href = 'login.html';
+                return;
+            }
+
             formData.append('shipping_address', address);
             formData.append('cart', JSON.stringify(cart));
             formData.append('payment_method', paymentMethod);
+            const alertBox = document.getElementById('alert-box');
 
             // Append proof of payment if exists and method is transfer
             if (paymentMethod === 'transfer') {
@@ -373,8 +424,15 @@
                     updateCartCount();
                     
                     // Success Message
-                    alert('Order placed successfully! Redirecting to dashboard...');
-                    window.location.href = 'user_dashboard.html';
+                    if (data.redirect) {
+                        // If guest account created, maybe redirect to login or dashboard with token?
+                        // For now, simple alert
+                        alert(data.message);
+                        window.location.href = data.redirect; // e.g., 'login.html' or 'user_dashboard.html'
+                    } else {
+                        alert('Order placed successfully! ' + (user ? 'Redirecting to dashboard...' : 'Check your email for details.'));
+                        window.location.href = user ? 'user_dashboard.html' : 'products.html';
+                    }
                 } else {
                     alertBox.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to place order'}</div>`;
                 }

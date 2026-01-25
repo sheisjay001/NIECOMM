@@ -31,32 +31,8 @@ async function toggleWishlist(btn, productId) {
 
     try {
         if (isActive) {
-            // Remove (We need wishlist_id, but here we might only have productId. 
-            // Ideally we store wishlist_id on the button. If not, we might need a different API or lookup.)
-            // For now, let's assume the button has data-wishlist-id if known, or we call a 'remove by product' endpoint if we had one.
-            // Since we don't have 'remove by product' yet, and finding the ID is complex, 
-            // let's just implement ADD for now in the shared function and handle specific remove logic where we have the ID.
-            // Wait, I can make the backend support DELETE by product_id too?
-            // Or I can just fetch the wishlist to find the ID.
-            
-            // Let's assume for this interaction, we just toggle the UI and let the user manage removals in wishlist page 
-            // OR we implement a smart toggle endpoint.
-            // Let's use the 'add' endpoint which is safe.
-            // If it's already there, the backend might error or return existing.
-            
-            // Actually, best UX is to allow toggling.
-            // Let's query the wishlist to find the item to delete it.
             const wRes = await fetch(`/api/wishlist?user_id=${user.id}`);
             const wItems = await wRes.json();
-            const item = wItems.find(i => i.id === productId); // API returns product details joined, check mapping.
-            // The API returns: w.id as wishlist_id, p.*
-            // So we check if p.id (which is in the root of the object because of p.*?)
-            // Let's look at the SQL: SELECT w.id as wishlist_id, p.* ...
-            // So the row has 'id' from product? No, p.* includes id.
-            // But if column names collide, p.id might overwrite w.id?
-            // "w.id as wishlist_id" is explicit. "p.*" includes id.
-            // So row.id is product id, row.wishlist_id is wishlist id.
-            
             const wishlistItem = wItems.find(i => i.id === productId);
             if (wishlistItem) {
                 await fetch(`/api/wishlist/${wishlistItem.wishlist_id}?user_id=${user.id}`, { method: 'DELETE' });
@@ -65,7 +41,6 @@ async function toggleWishlist(btn, productId) {
                 showToast('Removed from wishlist');
             }
         } else {
-            // Add
             const res = await fetch('/api/wishlist', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -112,6 +87,67 @@ async function updateWishlistIcons() {
         });
     } catch (e) { console.error(e); }
 }
+
+// --- Comparison Feature ---
+function toggleCompare(id) {
+    let compareList = JSON.parse(localStorage.getItem('compareList')) || [];
+    const index = compareList.indexOf(id);
+    
+    if (index > -1) {
+        compareList.splice(index, 1);
+        showToast('Removed from comparison');
+    } else {
+        if (compareList.length >= 3) {
+            showToast('You can only compare up to 3 products.', 'warning');
+            // Uncheck any checkboxes if present
+            const checkbox = document.querySelector(`.compare-check[data-id="${id}"]`);
+            if(checkbox) checkbox.checked = false;
+            return;
+        }
+        compareList.push(id);
+        showToast('Added to comparison');
+    }
+    localStorage.setItem('compareList', JSON.stringify(compareList));
+    updateCompareUI();
+}
+
+function updateCompareUI() {
+    const compareList = JSON.parse(localStorage.getItem('compareList')) || [];
+    const countSpan = document.getElementById('compare-count');
+    const bar = document.getElementById('compare-bar');
+    
+    if (countSpan) countSpan.textContent = compareList.length;
+    
+    if (bar) {
+        if (compareList.length > 0) {
+            bar.classList.remove('d-none');
+        } else {
+            bar.classList.add('d-none');
+        }
+    }
+
+    // Update checkboxes or buttons if they exist
+    document.querySelectorAll('.compare-check').forEach(chk => {
+        const id = parseInt(chk.dataset.id);
+        chk.checked = compareList.includes(id);
+    });
+    
+    // Update buttons in product details
+    const compareBtn = document.getElementById('compare-btn');
+    if (compareBtn) {
+        // Assuming compareBtn has a data-id or we know the context
+        // This part might be tricky if not generic, but let's assume standard usage
+        // Or we just check logic in the page specific script.
+        // Better:
+    }
+}
+
+function clearCompare() {
+    localStorage.removeItem('compareList');
+    updateCompareUI();
+}
+// -------------------------
+
 function loadNav() {
     const navPlaceholder = document.getElementById('nav-placeholder');
     if (navPlaceholder) {
@@ -126,6 +162,9 @@ function loadNav() {
                 </a>
                 
                 <div class="d-flex align-items-center gap-3 order-lg-last">
+                    <button class="btn btn-link text-secondary p-0 border-0" onclick="toggleTheme()" id="theme-toggle" title="Toggle Dark Mode">
+                        <i class="fas fa-moon fa-lg"></i>
+                    </button>
                     <a href="cart.html" class="position-relative text-secondary hover-primary">
                         <i class="fas fa-shopping-cart fa-lg"></i>
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white" id="cart-count-badge" style="font-size: 0.6rem;">0</span>
@@ -175,11 +214,43 @@ function loadNav() {
         
         // After injecting, check auth and cart
         checkAuth();
+        syncCart(); // New sync call
         updateCartCount();
+        updateCompareUI(); // Update compare UI on nav load
+    }
+}
+
+// Cart Synchronization
+async function syncCart() {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) return;
+
+    try {
+        // Fetch server cart
+        const res = await fetch(`/api/cart/${user.id}`);
+        const serverCart = await res.json();
+        let localCart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+        if (localCart.length === 0 && serverCart.length > 0) {
+            // Restore from server
+            localStorage.setItem('cart', JSON.stringify(serverCart));
+            updateCartCount();
+            // showToast('Cart restored from server', 'info'); // Optional: notify user
+        } else if (localCart.length > 0) {
+            // Push local to server (Sync)
+            await fetch('/api/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.id, items: localCart })
+            });
+        }
+    } catch (e) {
+        console.error('Cart sync failed:', e);
     }
 }
 
 function checkAuthRedirect() {
+
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user) {
         window.location.href = 'login.html';
@@ -264,17 +335,16 @@ function checkAuth() {
 
         authButtons.innerHTML = `
             <div class="dropdown">
-                <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown">
-                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-primary fw-bold border" style="width: 38px; height: 38px;">
-                        ${user.username.charAt(0).toUpperCase()}
-                    </div>
-                    <span class="ms-2 text-dark d-none d-md-block">${user.username}</span>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2">
-                    <li><a class="dropdown-item" href="${dashboardLink}">Dashboard</a></li>
-                    ${showOrders ? '<li><a class="dropdown-item" href="orders.html">My Orders</a></li>' : ''}
+                <button class="btn btn-link text-dark text-decoration-none dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="https://ui-avatars.com/api/?name=${user.username}&background=random" class="rounded-circle me-1" width="32" height="32">
+                    <span class="d-none d-lg-inline">${user.username}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                    <li><h6 class="dropdown-header">Hello, ${user.username}</h6></li>
+                    <li><a class="dropdown-item" href="${dashboardLink}"><i class="fas fa-tachometer-alt me-2 text-primary"></i>Dashboard</a></li>
+                    ${showOrders ? `<li><a class="dropdown-item" href="${dashboardLink}#orders"><i class="fas fa-box me-2 text-info"></i>My Orders</a></li>` : ''}
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="#" onclick="logout()">Logout</a></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Log Out</a></li>
                 </ul>
             </div>
         `;
@@ -282,115 +352,175 @@ function checkAuth() {
     return user;
 }
 
-function logout() {
+function logout(msg) {
     localStorage.removeItem('user');
-    window.location.href = '/login.html';
+    // Don't clear cart on logout for now, or maybe we should?
+    // localStorage.removeItem('cart'); 
+    
+    if (msg) showToast(msg, 'info');
+    setTimeout(() => {
+        window.location.href = 'index.html';
+    }, 500);
 }
 
-// Toast Notification System
+// Global Toast Notification
 function showToast(message, type = 'success') {
-    // Create toast container if it doesn't exist
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999;';
-        document.body.appendChild(container);
+    // Create toast container if not exists
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
     }
 
-    // Create toast element
-    const toast = document.createElement('div');
-    const bgColor = type === 'success' ? '#34C759' : (type === 'error' ? '#FF3B30' : '#0071E3');
-    const icon = type === 'success' ? '<i class="fas fa-check-circle me-2"></i>' : (type === 'error' ? '<i class="fas fa-exclamation-circle me-2"></i>' : '<i class="fas fa-info-circle me-2"></i>');
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : (type === 'warning' ? 'warning' : 'success')} border-0`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
     
-    toast.className = 'toast-notification shadow-lg';
-    toast.style.cssText = `
-        background-color: ${bgColor};
-        color: white;
-        padding: 16px 24px;
-        border-radius: 12px;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        font-weight: 500;
-        opacity: 0;
-        transform: translateY(-20px);
-        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        min-width: 300px;
+    toastEl.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
     `;
-    toast.innerHTML = `${icon} ${message}`;
 
-    container.appendChild(toast);
+    toastContainer.appendChild(toastEl);
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
 
-    // Animate in
-    requestAnimationFrame(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateY(0)';
+    toastEl.addEventListener('hidden.bs.toast', () => {
+        toastEl.remove();
     });
-
-    // Remove after 3 seconds
-    setTimeout((msg) => {
-        toast.style.opacity = '0';
-    if(msg && typeof msg === 'string') alert(msg);
-        toast.style.transfor = 'translateY(-20px)';
-        setTimeout(() => toast.remove(), 400);
-    }, 3000);
 }
 
-// Cart Functions
-function addToCart(product) {
-    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existing = cart.find(p => p.id === product.id);
-    const qtyToAdd = product.quantity || 1;
-    
-    if (existing) {
-        existing.quantity += qtyToAdd;
-    } else {
-        cart.push({ ...product, quantity: qtyToAdd });
+// Shopping Cart Logic
+function addToCart(productId, quantity = 1) {
+    // Basic animation
+    const badge = document.getElementById('cart-count-badge');
+    if(badge) {
+        badge.classList.add('animate__animated', 'animate__bounce');
+        setTimeout(() => badge.classList.remove('animate__animated', 'animate__bounce'), 1000);
     }
-    
+
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const existingItem = cart.find(item => item.id === productId);
+
+    if (existingItem) {
+        existingItem.quantity += parseInt(quantity);
+    } else {
+        cart.push({ id: productId, quantity: parseInt(quantity) });
+    }
+
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCount();
-    showToast('Product added to cart successfully!', 'success');
+    syncCart(); // Sync after adding
+    showToast('Product added to cart');
 }
 
 function updateCartCount() {
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const count = cart.reduce((acc, item) => acc + item.quantity, 0);
-    const badge = document.getElementById('cart-count-badge');
-    if (badge) badge.textContent = count;
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const count = cart.reduce((total, item) => total + item.quantity, 0);
     
-    // Update Mobile Badge
-    const mobileBadge = document.getElementById('mobile-cart-badge');
-    if (mobileBadge) {
-        if (count > 0) {
-            mobileBadge.style.display = 'block';
-        } else {
-            mobileBadge.style.display = 'none';
+    const badges = [
+        document.getElementById('cart-count-badge'),
+        document.getElementById('mobile-cart-badge')
+    ];
+
+    badges.forEach(badge => {
+        if (badge) {
+            badge.textContent = count;
+            if(count > 0) badge.style.display = 'block';
+            else badge.style.display = 'none';
         }
+    });
+}
+
+// Helper: Get User Location
+function getUserLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                // Reload products if on products page
+                if (typeof loadProducts === 'function') {
+                   // loadProducts(); // Optional: Auto-reload
+                }
+            },
+            (error) => {
+                console.log('Geolocation denied or failed');
+            }
+        );
     }
 }
 
-// Global Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
-    // If nav-placeholder exists, loadNav (which calls checkAuth and updateCartCount)
-    if (document.getElementById('nav-placeholder')) {
-        loadNav();
-    } else {
-        // Otherwise just check auth and cart
-        checkAuth();
-        updateCartCount();
-    }
-});
+// Load States Helper
+async function loadStates() {
+    const select = document.getElementById('state-filter');
+    if (!select) return;
 
-function checkAuthRedirect() {
-    const user = localStorage.getItem('user');
-    if (user) {
-        const userData = JSON.parse(user);
-        if (userData.role === 'vendor') window.location.href = 'vendor_dashboard.html';
-        else if (userData.role === 'admin') window.location.href = 'admin_dashboard.html';
-        else window.location.href = 'user_dashboard.html';
-    } else {
-        window.location.href = 'login.html';
+    try {
+        const res = await fetch('/api/states');
+        const states = await res.json();
+        
+        select.innerHTML = '<option value="">All States</option>';
+        states.forEach(state => {
+            select.innerHTML += `<option value="${state.id}">${state.name}</option>`;
+        });
+        
+        // Setup cascading dropdowns
+        const lgaSelect = document.getElementById('lga-filter');
+        const citySelect = document.getElementById('city-filter');
+
+        select.addEventListener('change', async () => {
+             const stateId = select.value;
+             if(stateId) {
+                 // Load LGAs
+                 const lRes = await fetch(`/api/states/${stateId}/lgas`);
+                 const lgas = await lRes.json();
+                 lgaSelect.innerHTML = '<option value="">All LGAs</option>' + lgas.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                 lgaSelect.disabled = false;
+
+                 // Load Cities
+                 const cRes = await fetch(`/api/states/${stateId}/cities`);
+                 const cities = await cRes.json();
+                 citySelect.innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                 citySelect.disabled = false;
+             } else {
+                 lgaSelect.innerHTML = '<option value="">All LGAs</option>';
+                 lgaSelect.disabled = true;
+                 citySelect.innerHTML = '<option value="">All Cities</option>';
+                 citySelect.disabled = true;
+             }
+        });
+
+    } catch (err) {
+        console.error(err);
     }
 }
+
+// Theme Toggle
+function toggleTheme() {
+    const body = document.body;
+    const currentTheme = body.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    body.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    const icon = document.querySelector('#theme-toggle i');
+    if (icon) {
+        icon.className = newTheme === 'dark' ? 'fas fa-sun fa-lg' : 'fas fa-moon fa-lg';
+    }
+}
+
+// Apply Theme on Load
+const savedTheme = localStorage.getItem('theme') || 'light';
+document.body.setAttribute('data-theme', savedTheme);

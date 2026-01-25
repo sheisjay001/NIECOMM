@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispute Details - NIECOMM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .chat-box {
+            height: 400px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+        }
+        .message-bubble {
+            max-width: 75%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .message-bubble.sent {
+            background-color: #008751; /* Nigeria Green */
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+        .message-bubble.received {
+            background-color: #e9ecef;
+            color: #212529;
+            margin-right: auto;
+            border-bottom-left-radius: 5px;
+        }
+        .message-meta {
+            font-size: 0.75rem;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+        .system-message {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin: 15px 0;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div id="nav-placeholder"></div>
+
+    <section class="py-5">
+        <div class="container">
+            <div class="mb-4">
+                <a href="disputes.html" class="text-decoration-none text-muted">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Disputes
+                </a>
+            </div>
+
+            <div class="row g-4">
+                <!-- Dispute Details Sidebar -->
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0">Dispute Details</h5>
+                        </div>
+                        <div class="card-body" id="dispute-info">
+                            <!-- Skeleton Loading -->
+                            <div class="skeleton skeleton-text w-50 mb-3"></div>
+                            <div class="skeleton skeleton-text w-75 mb-2"></div>
+                            <div class="skeleton skeleton-text w-50 mb-4"></div>
+                            <div class="skeleton skeleton-rect w-100" style="height: 100px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Section -->
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Discussion</h5>
+                            <span class="badge bg-secondary" id="msg-count">0 Messages</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="chat-box p-4" id="chat-box">
+                                <!-- Skeleton Messages -->
+                                <div class="d-flex mb-3">
+                                    <div class="skeleton skeleton-rect" style="width: 200px; height: 60px; border-radius: 15px;"></div>
+                                </div>
+                                <div class="d-flex justify-content-end mb-3">
+                                    <div class="skeleton skeleton-rect" style="width: 200px; height: 60px; border-radius: 15px;"></div>
+                                </div>
+                                <div class="d-flex mb-3">
+                                    <div class="skeleton skeleton-rect" style="width: 150px; height: 60px; border-radius: 15px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white p-3">
+                            <form id="message-form" class="d-flex gap-2">
+                                <input type="text" id="message-input" class="form-control" placeholder="Type a message..." required disabled>
+                                <button type="submit" class="btn btn-primary" id="send-btn" disabled>
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            loadNav();
+            const user = checkAuth();
+            if (!user) return;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const disputeId = urlParams.get('id');
+
+            if (!disputeId) {
+                window.location.href = 'disputes.html';
+                return;
+            }
+
+            const disputeInfoEl = document.getElementById('dispute-info');
+            const chatBox = document.getElementById('chat-box');
+            const messageForm = document.getElementById('message-form');
+            const messageInput = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-btn');
+            const msgCountEl = document.getElementById('msg-count');
+
+            async function loadDisputeData() {
+                try {
+                    const res = await fetch(`/api/disputes/${disputeId}`);
+                    if (!res.ok) throw new Error('Dispute not found');
+                    
+                    const data = await res.json();
+                    const { dispute, messages } = data;
+
+                    // Render Dispute Details
+                    disputeInfoEl.innerHTML = `
+                        <div class="mb-4">
+                            <label class="text-muted small text-uppercase fw-bold">Dispute ID</label>
+                            <div class="fw-bold">#${dispute.id}</div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="text-muted small text-uppercase fw-bold">Status</label>
+                            <div><span class="badge bg-${getStatusColor(dispute.status)}">${dispute.status.toUpperCase()}</span></div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="text-muted small text-uppercase fw-bold">Order Number</label>
+                            <div>#${dispute.order_number}</div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="text-muted small text-uppercase fw-bold">Reason</label>
+                            <div>${dispute.reason}</div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="text-muted small text-uppercase fw-bold">Description</label>
+                            <div class="p-3 bg-light rounded">${dispute.description}</div>
+                        </div>
+                        ${dispute.resolution ? `
+                        <div class="mb-4">
+                            <label class="text-muted small text-uppercase fw-bold text-success">Resolution</label>
+                            <div class="p-3 bg-success bg-opacity-10 border border-success rounded text-success">${dispute.resolution}</div>
+                        </div>
+                        ` : ''}
+                    `;
+
+                    // Render Messages
+                    if (messages.length === 0) {
+                        chatBox.innerHTML = '<div class="system-message">No messages yet. Start the conversation.</div>';
+                    } else {
+                        chatBox.innerHTML = messages.map(msg => {
+                            const isMe = msg.sender_id === user.id; // Using sender_id as fixed in server.js
+                            return `
+                                <div class="message-bubble ${isMe ? 'sent' : 'received'}">
+                                    <div class="fw-bold small mb-1">${isMe ? 'You' : msg.username} <span class="badge bg-secondary" style="font-size:0.6rem">${msg.role}</span></div>
+                                    <div>${msg.message}</div>
+                                    <div class="message-meta text-end">${new Date(msg.created_at).toLocaleString()}</div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                    
+                    msgCountEl.textContent = `${messages.length} Messages`;
+                    scrollToBottom();
+
+                    // Enable input if status is open
+                    if (dispute.status === 'open') {
+                        messageInput.disabled = false;
+                        sendBtn.disabled = false;
+                    } else {
+                        messageInput.placeholder = 'Dispute is closed/resolved.';
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    disputeInfoEl.innerHTML = '<div class="alert alert-danger">Failed to load dispute details.</div>';
+                    chatBox.innerHTML = '';
+                }
+            }
+
+            await loadDisputeData();
+
+            // Handle New Message
+            messageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = messageInput.value.trim();
+                if (!text) return;
+
+                // Optimistic UI update
+                const tempId = Date.now();
+                const tempMsg = `
+                    <div class="message-bubble sent" id="msg-${tempId}">
+                        <div class="fw-bold small mb-1">You</div>
+                        <div>${text}</div>
+                        <div class="message-meta text-end">Sending...</div>
+                    </div>
+                `;
+                const noMsgEl = chatBox.querySelector('.system-message');
+                if (noMsgEl) noMsgEl.remove();
+                chatBox.insertAdjacentHTML('beforeend', tempMsg);
+                scrollToBottom();
+                messageInput.value = '';
+
+                try {
+                    const res = await fetch(`/api/disputes/${disputeId}/messages`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: user.id,
+                            message: text
+                        })
+                    });
+
+                    if (res.ok) {
+                        // Reload to get correct timestamp and ensure sync
+                        // Or just update the status. For simplicity, we can leave it or reload.
+                        // Let's reload the messages quietly
+                        const res2 = await fetch(`/api/disputes/${disputeId}`);
+                        const data = await res2.json();
+                        // Re-render only messages? 
+                        // For now, let's just update the specific message status or leave it. 
+                        // Actually, let's replace the last message with correct time
+                        document.getElementById(`msg-${tempId}`).querySelector('.message-meta').textContent = new Date().toLocaleString();
+                    } else {
+                         document.getElementById(`msg-${tempId}`).classList.add('bg-danger');
+                         showToast('Failed to send message', 'error');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('Error sending message', 'error');
+                }
+            });
+
+            function scrollToBottom() {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            function getStatusColor(status) {
+                if (status === 'open') return 'warning';
+                if (status === 'resolved') return 'success';
+                if (status === 'closed') return 'secondary';
+                return 'primary';
+            }
+        });
+    </script>
+</body>
+</html>

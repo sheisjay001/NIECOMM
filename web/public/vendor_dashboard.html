@@ -98,6 +98,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a onclick="showSection('analytics'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-analytics">
+                        <i class="fas fa-chart-line me-3 text-primary"></i> Analytics
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a onclick="showSection('settings'); bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas')).hide()" class="nav-link sidebar-link text-dark rounded px-3 py-2 mb-1" id="mobile-nav-settings">
                         <i class="fas fa-cog me-3 text-secondary"></i> Settings
                     </a>
@@ -146,6 +151,11 @@
                     <li class="nav-item">
                         <a onclick="showSection('wallet')" class="sidebar-link" id="nav-wallet">
                             <i class="fas fa-wallet me-3" style="width: 20px;"></i> Wallet
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a onclick="showSection('analytics')" class="sidebar-link" id="nav-analytics">
+                            <i class="fas fa-chart-line me-3" style="width: 20px;"></i> Analytics
                         </a>
                     </li>
                     <li class="nav-item">
@@ -265,7 +275,24 @@
                                     </tr>
                                 </thead>
                                 <tbody id="dash-recent-orders">
-                                    <tr><td colspan="4" class="text-center py-3">Loading...</td></tr>
+                                    <tr>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -315,7 +342,27 @@
                                     </tr>
                                 </thead>
                                 <tbody id="products-body">
-                                    <tr><td colspan="5" class="text-center py-5">Loading products...</td></tr>
+                                    <tr>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -348,7 +395,33 @@
                                     </tr>
                                 </thead>
                                 <tbody id="orders-body">
-                                    <tr><td colspan="7" class="text-center py-5">Loading orders...</td></tr>
+                                    <tr>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                    </tr>
+                                    <tr>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                        <td><div class="skeleton skeleton-text" style="width: 100%;"></div></td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -392,6 +465,61 @@
                                 </thead>
                                 <tbody id="transaction-list">
                                     <tr><td colspan="5" class="text-center py-5">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Analytics -->
+                <div id="section-analytics" class="section">
+                    <h2 class="fw-bold mb-4">Store Analytics</h2>
+                    
+                    <div class="row g-4 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="card-premium h-100 p-4">
+                                <p class="text-muted small mb-1">Profile Views</p>
+                                <h3 class="fw-bold mb-0" id="analytics-profile-views">0</h3>
+                                <small class="text-primary"><i class="fas fa-eye"></i> Store Visits</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card-premium h-100 p-4">
+                                <p class="text-muted small mb-1">Product Views</p>
+                                <h3 class="fw-bold mb-0" id="analytics-product-views">0</h3>
+                                <small class="text-success"><i class="fas fa-box-open"></i> Item Views</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card-premium h-100 p-4">
+                                <p class="text-muted small mb-1">Total Clicks</p>
+                                <h3 class="fw-bold mb-0" id="analytics-clicks">0</h3>
+                                <small class="text-info"><i class="fas fa-mouse-pointer"></i> Interactions</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card-premium h-100 p-4">
+                                <p class="text-muted small mb-1">Conversion Rate</p>
+                                <h3 class="fw-bold mb-0" id="analytics-conversion">0%</h3>
+                                <small class="text-warning"><i class="fas fa-percentage"></i> Sales / Views</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold mb-3">Recent Activity</h5>
+                    <div class="card-premium p-0 overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-4">Date</th>
+                                        <th>Activity Type</th>
+                                        <th>Product</th>
+                                        <th>IP Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analytics-table-body">
+                                    <tr><td colspan="4" class="text-center py-5">Loading activity...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -568,6 +696,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/vendor-analytics.js"></script>
     <script>
         // Check authentication
         const currentUser = JSON.parse(localStorage.getItem('user'));
@@ -633,6 +762,11 @@
             // Show Section
             const section = document.getElementById('section-' + sectionId);
             if(section) section.classList.add('active');
+
+            // Load Analytics if selected
+            if (sectionId === 'analytics') {
+                loadVendorAnalytics();
+            }
         }
 
         // --- DASHBOARD ---
