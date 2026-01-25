@@ -151,6 +151,9 @@ function clearCompare() {
 function loadNav() {
     const navPlaceholder = document.getElementById('nav-placeholder');
     if (navPlaceholder) {
+        const currentTheme = document.body.getAttribute('data-theme') || 'light';
+        const themeIcon = currentTheme === 'dark' ? 'fas fa-sun fa-lg' : 'fas fa-moon fa-lg';
+
         navPlaceholder.innerHTML = `
         <nav class="navbar navbar-expand-lg sticky-top bg-white shadow-sm">
             <div class="container">
@@ -163,7 +166,7 @@ function loadNav() {
                 
                 <div class="d-flex align-items-center gap-3 order-lg-last">
                     <button class="btn btn-link text-secondary p-0 border-0" onclick="toggleTheme()" id="theme-toggle" title="Toggle Dark Mode">
-                        <i class="fas fa-moon fa-lg"></i>
+                        <i class="${themeIcon} theme-icon-active"></i>
                     </button>
                     <a href="cart.html" class="position-relative text-secondary hover-primary">
                         <i class="fas fa-shopping-cart fa-lg"></i>
@@ -511,12 +514,34 @@ function toggleTheme() {
     body.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     
-    const icon = document.querySelector('#theme-toggle i');
-    if (icon) {
-        icon.className = newTheme === 'dark' ? 'fas fa-sun fa-lg' : 'fas fa-moon fa-lg';
+    updateThemeIcons(newTheme);
+}
+
+function updateThemeIcons(theme) {
+    const icons = document.querySelectorAll('.theme-icon-active');
+    icons.forEach(icon => {
+        if (theme === 'dark') {
+            icon.classList.remove('fa-moon');
+            icon.classList.add('fa-sun');
+        } else {
+            icon.classList.remove('fa-sun');
+            icon.classList.add('fa-moon');
+        }
+    });
+    
+    // Legacy support for ID specific
+    const navIcon = document.querySelector('#theme-toggle i');
+    if (navIcon && !navIcon.classList.contains('theme-icon-active')) {
+        navIcon.className = theme === 'dark' ? 'fas fa-sun fa-lg' : 'fas fa-moon fa-lg';
     }
 }
 
 // Apply Theme on Load
 const savedTheme = localStorage.getItem('theme') || 'light';
 document.body.setAttribute('data-theme', savedTheme);
+// We need to wait for DOM to update icons if called immediately, but scripts usually run after DOM parsing if at bottom.
+// However, main.js might be included in head.
+// Let's add a listener
+document.addEventListener('DOMContentLoaded', () => {
+    updateThemeIcons(savedTheme);
+});
