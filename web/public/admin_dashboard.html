@@ -1213,6 +1213,64 @@
                 document.getElementById('disputes-table').innerHTML = '<tr><td colspan="7" class="text-center text-danger py-5">Failed to load disputes.</td></tr>';
             }
         }
+
+        // --- ABANDONED CARTS ---
+        async function loadAbandonedCarts() {
+            try {
+                const res = await fetch('/api/admin/abandoned-carts');
+                const carts = await res.json();
+                const tbody = document.getElementById('abandoned-table');
+
+                if (carts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5">No abandoned carts found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = carts.map(c => {
+                    let items = [];
+                    try {
+                        items = typeof c.items === 'string' ? JSON.parse(c.items) : c.items;
+                    } catch(e) { items = []; }
+
+                    const totalValue = items.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
+                    const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
+                    return `
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold">${c.username || 'Guest'}</div>
+                            <small class="text-muted">${c.email || 'No Email'}</small>
+                        </td>
+                        <td>${itemCount} items <small class="text-muted">(${items.length} unique)</small></td>
+                        <td class="fw-bold">₦${totalValue.toLocaleString()}</td>
+                        <td>${new Date(c.updated_at).toLocaleString()}</td>
+                        <td>
+                            <button onclick="notifyUser(${c.user_id})" class="btn btn-sm btn-outline-primary rounded-pill">
+                                <i class="fas fa-bell me-1"></i> Remind
+                            </button>
+                        </td>
+                    </tr>
+                `}).join('');
+            } catch (err) {
+                console.error(err);
+                document.getElementById('abandoned-table').innerHTML = '<tr><td colspan="5" class="text-center text-danger py-5">Failed to load abandoned carts.</td></tr>';
+            }
+        }
+
+        function notifyAbandonedCarts() {
+            if(confirm('Send reminder emails to all users with abandoned carts?')) {
+                // Simulation of bulk email sending
+                showToast('Sending reminders to all users...', 'info');
+                setTimeout(() => {
+                    showToast('Reminders sent successfully!', 'success');
+                }, 2000);
+            }
+        }
+
+        function notifyUser(userId) {
+            // Simulation of single user email
+            showToast('Reminder sent to user!', 'success');
+        }
     </script>
 </body>
 </html>

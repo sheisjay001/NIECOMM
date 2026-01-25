@@ -1405,6 +1405,27 @@ app.get('/api/admin/stats', async (req, res) => {
     }
 });
 
+// Admin: Abandoned Carts
+app.get('/api/admin/abandoned-carts', async (req, res) => {
+    try {
+        const conn = await getDb();
+        // Carts not updated in 24 hours
+        const [rows] = await conn.execute(`
+            SELECT c.user_id, c.items, c.updated_at, u.username, u.email, u.phone
+            FROM carts c
+            JOIN users u ON c.user_id = u.id
+            WHERE c.updated_at < NOW() - INTERVAL 24 HOUR
+            ORDER BY c.updated_at DESC
+        `);
+        
+        await conn.end();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Admin: Get Pending Verifications
 app.get('/api/admin/verifications', async (req, res) => {
     try {
