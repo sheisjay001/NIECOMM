@@ -439,7 +439,14 @@
                 // Recent Orders Table
                 const tbody = document.getElementById('dashboard-orders-body');
                 if (data.orders.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No recent orders found. <a href="products.html">Start shopping!</a></td></tr>';
+                    tbody.innerHTML = `
+                        <tr><td colspan="5">
+                            <div class="empty-state py-4">
+                                <i class="fas fa-box-open empty-state-icon mb-3" style="font-size: 3rem;"></i>
+                                <h5 class="fw-bold">No recent orders</h5>
+                                <a href="products.html" class="btn btn-sm btn-premium">Start Shopping</a>
+                            </div>
+                        </td></tr>`;
                 } else {
                     const recent = data.orders.slice(0, 5); // Top 5
                     tbody.innerHTML = recent.map(o => renderOrderRow(o, true)).join('');
@@ -462,7 +469,15 @@
                 const orders = await res.json();
 
                 if (orders.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">You haven\'t placed any orders yet.</td></tr>';
+                    tbody.innerHTML = `
+                        <tr><td colspan="7">
+                            <div class="empty-state py-5">
+                                <i class="fas fa-shopping-bag empty-state-icon mb-3"></i>
+                                <h4 class="fw-bold">No orders placed yet</h4>
+                                <p class="text-muted mb-4">Your order history will appear here.</p>
+                                <a href="products.html" class="btn btn-premium">Start Shopping</a>
+                            </div>
+                        </td></tr>`;
                 } else {
                     tbody.innerHTML = orders.map(o => renderOrderRow(o, false)).join('');
                 }

@@ -353,23 +353,38 @@ function showToast(message, type = 'success') {
         document.body.appendChild(toastContainer);
     }
 
+    // Icons mapping
+    const icons = {
+        success: 'fas fa-check-circle',
+        error: 'fas fa-exclamation-circle',
+        warning: 'fas fa-exclamation-triangle',
+        info: 'fas fa-info-circle'
+    };
+    const icon = icons[type] || icons.info;
+
     const toastEl = document.createElement('div');
-    toastEl.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : (type === 'warning' ? 'warning' : 'success')} border-0`;
+    toastEl.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : (type === 'warning' ? 'warning' : 'success')} border-0 shadow-lg`;
     toastEl.setAttribute('role', 'alert');
     toastEl.setAttribute('aria-live', 'assertive');
     toastEl.setAttribute('aria-atomic', 'true');
     
     toastEl.innerHTML = `
         <div class="d-flex">
-            <div class="toast-body">
-                ${message}
+            <div class="toast-body d-flex align-items-center gap-2">
+                <i class="${icon} fa-lg"></i>
+                <span>${message}</span>
             </div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
 
+    // Limit to 5 toasts
+    if (toastContainer.childElementCount >= 5) {
+        toastContainer.firstChild.remove();
+    }
+
     toastContainer.appendChild(toastEl);
-    const toast = new bootstrap.Toast(toastEl);
+    const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
     toast.show();
 
     toastEl.addEventListener('hidden.bs.toast', () => {
@@ -382,8 +397,10 @@ function addToCart(productId, quantity = 1) {
     // Basic animation
     const badge = document.getElementById('cart-count-badge');
     if(badge) {
-        badge.classList.add('animate__animated', 'animate__bounce');
-        setTimeout(() => badge.classList.remove('animate__animated', 'animate__bounce'), 1000);
+        badge.classList.remove('badge-pulse');
+        void badge.offsetWidth; // Trigger reflow
+        badge.classList.add('badge-pulse');
+        setTimeout(() => badge.classList.remove('badge-pulse'), 2000);
     }
 
     let cart = JSON.parse(localStorage.getItem('cart')) || [];

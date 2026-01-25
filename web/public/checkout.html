@@ -234,24 +234,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             loadNav();
-            // checkAuth(); // Allow guest checkout
-            prefillContact();
+            checkAuthRedirect(); // Enforce login since guest checkout is disabled
             loadCartSummary();
         });
-
-        function prefillContact() {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (user) {
-                document.getElementById('contact_name').value = user.username || '';
-                document.getElementById('contact_email').value = user.email || '';
-                document.getElementById('contact_phone').value = user.phone || ''; // Assuming phone exists
-                // Make readonly or allow editing? Allow editing for shipping contact
-                document.getElementById('contact_email').readOnly = true; 
-                document.getElementById('create_account').closest('.col-md-6').style.display = 'none'; // Hide create account checkbox
-            } else {
-                document.getElementById('login-prompt').classList.remove('d-none');
-            }
-        }
 
         // Toggle Payment Method Styles
         document.querySelectorAll('input[name="paymentMethod"]').forEach(input => {
