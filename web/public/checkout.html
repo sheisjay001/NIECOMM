@@ -20,38 +20,6 @@
                 <div class="col-lg-8">
                     <div id="alert-box"></div>
                     
-                    <!-- Contact Information -->
-                    <div class="card shadow-sm border-0 rounded-4 mb-4">
-                        <div class="card-body p-4">
-                            <h5 class="fw-bold mb-3"><i class="fas fa-user text-primary me-2"></i>Contact Information</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Full Name</label>
-                                    <input type="text" class="form-control" id="contact_name" required placeholder="John Doe">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Email Address</label>
-                                    <input type="email" class="form-control" id="contact_email" required placeholder="john@example.com">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Phone Number</label>
-                                    <input type="tel" class="form-control" id="contact_phone" required placeholder="08012345678">
-                                </div>
-                                <div class="col-md-6 d-flex align-items-end">
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" id="create_account" checked>
-                                        <label class="form-check-label" for="create_account">
-                                            Create an account for me
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="login-prompt" class="mt-3 d-none">
-                                <small class="text-muted">Already have an account? <a href="login.html">Log in</a> for faster checkout.</small>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Shipping Address -->
                     <div class="card shadow-sm border-0 rounded-4 mb-4">
                         <div class="card-body p-4">
@@ -332,17 +300,6 @@
         }
 
         const handlePlaceOrder = () => {
-            // Validate Contact Info
-            const name = document.getElementById('contact_name').value;
-            const email = document.getElementById('contact_email').value;
-            const phone = document.getElementById('contact_phone').value;
-            
-            if (!name || !email || !phone) {
-                alert('Please fill in all contact information');
-                document.getElementById('contact_name').focus();
-                return;
-            }
-
             const address = document.getElementById('shipping_address').value;
             if (!address) {
                 alert('Please enter a shipping address');
@@ -352,7 +309,6 @@
             
             // Store contact info in global object for submitOrder to access
             window.orderFormData = window.orderFormData || {};
-            window.orderFormData.contact = { name, email, phone };
             window.orderFormData.shipping_address = address;
             
             const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;

@@ -189,27 +189,6 @@ function loadNav() {
                 </div>
             </div>
         </nav>
-
-        <!-- Mobile Bottom Navigation -->
-        <div class="mobile-bottom-nav">
-            <a href="/" class="mobile-nav-item ${window.location.pathname === '/' || window.location.pathname === '/index.html' ? 'active' : ''}">
-                <i class="fas fa-home"></i>
-                <span>Home</span>
-            </a>
-            <a href="products.html" class="mobile-nav-item ${window.location.pathname.includes('products') ? 'active' : ''}">
-                <i class="fas fa-store"></i>
-                <span>Shop</span>
-            </a>
-            <a href="cart.html" class="mobile-nav-item ${window.location.pathname.includes('cart') ? 'active' : ''} position-relative">
-                <i class="fas fa-shopping-cart"></i>
-                <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" id="mobile-cart-badge" style="display: none; width: 10px; height: 10px; margin-left: -10px; margin-top: 5px;"></span>
-                <span>Cart</span>
-            </a>
-            <a href="javascript:void(0)" onclick="checkAuthRedirect()" class="mobile-nav-item ${window.location.pathname.includes('dashboard') ? 'active' : ''}">
-                <i class="fas fa-user"></i>
-                <span>Account</span>
-            </a>
-        </div>
         `;
         
         // After injecting, check auth and cart
