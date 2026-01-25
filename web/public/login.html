@@ -52,6 +52,20 @@
                             </div>
                         </form>
                         
+                        <div class="text-center my-3">
+                            <span class="text-muted bg-white px-2 position-relative" style="z-index: 1;">Or continue with</span>
+                            <div class="border-bottom position-relative" style="top: -12px; z-index: 0;"></div>
+                        </div>
+
+                        <div class="d-grid gap-2 mb-4">
+                            <button type="button" class="btn btn-outline-danger" onclick="simulateSocialLogin('Google')">
+                                <i class="fab fa-google me-2"></i> Google
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="simulateSocialLogin('Facebook')">
+                                <i class="fab fa-facebook-f me-2"></i> Facebook
+                            </button>
+                        </div>
+
                         <div class="text-center mt-4">
                             <p class="mb-0">Don't have an account? <a href="register.html">Sign Up</a></p>
                             <a href="/" class="d-block mt-2 small text-muted">Back to Home</a>
@@ -128,6 +142,15 @@
                 alertBox.innerHTML = '<div class="alert alert-danger">An error occurred. Please try again.</div>';
             }
         });
+
+        // Social Login Simulation
+        function simulateSocialLogin(provider) {
+            const alertBox = document.getElementById('alert-box');
+            alertBox.innerHTML = `<div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> ${provider} Login requires an API Key. 
+                <br>This is a simulation. In a live environment, this would redirect to ${provider}'s OAuth consent screen.
+            </div>`;
+        }
 
         async function handleLoginSuccess(user) {
             const alertBox = document.getElementById('alert-box');

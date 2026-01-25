@@ -267,6 +267,25 @@ h1, h2, h3, h4, h5, h6 {
     background-color: #4B5563;
 }
 
+/* Hover Lift Animation */
+.hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg) !important;
+}
+
+/* Icon Circle */
+.icon-circle {
+    transition: transform 0.3s ease;
+}
+
+.hover-lift:hover .icon-circle {
+    transform: scale(1.1) rotate(5deg);
+}
+
 .skeleton-btn {
     width: 100px;
     height: 40px;

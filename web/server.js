@@ -927,7 +927,7 @@ app.get('/api/admin/abandoned-carts', async (req, res) => {
     }
 });
 
-// Admin: Notify Abandoned Carts
+// Admin: Notify Abandoned Carts (Bulk)
 app.post('/api/admin/abandoned-carts/notify', async (req, res) => {
     try {
         const conn = await getDb();
@@ -948,6 +948,26 @@ app.post('/api/admin/abandoned-carts/notify', async (req, res) => {
         }
 
         res.json({ message: `Sent reminders to ${count} users.` });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Admin: Notify Abandoned Cart (Single)
+app.post('/api/admin/abandoned-carts/notify/:userId', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const conn = await getDb();
+        const [rows] = await conn.execute('SELECT email, username FROM users WHERE id = ?', [userId]);
+        await conn.end();
+
+        if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        
+        const user = rows[0];
+        console.log(`[EMAIL SIMULATION] Sending Abandoned Cart Reminder to ${user.email}: "Hi ${user.username}, you left items in your cart! Complete your purchase now."`);
+
+        res.json({ message: `Reminder sent to ${user.username}` });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -1405,26 +1425,7 @@ app.get('/api/admin/stats', async (req, res) => {
     }
 });
 
-// Admin: Abandoned Carts
-app.get('/api/admin/abandoned-carts', async (req, res) => {
-    try {
-        const conn = await getDb();
-        // Carts not updated in 24 hours
-        const [rows] = await conn.execute(`
-            SELECT c.user_id, c.items, c.updated_at, u.username, u.email, u.phone
-            FROM carts c
-            JOIN users u ON c.user_id = u.id
-            WHERE c.updated_at < NOW() - INTERVAL 24 HOUR
-            ORDER BY c.updated_at DESC
-        `);
-        
-        await conn.end();
-        res.json(rows);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server error' });
-    }
-});
+
 
 // Admin: Get Pending Verifications
 app.get('/api/admin/verifications', async (req, res) => {

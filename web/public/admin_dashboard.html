@@ -1257,19 +1257,37 @@
             }
         }
 
-        function notifyAbandonedCarts() {
+        async function notifyAbandonedCarts() {
             if(confirm('Send reminder emails to all users with abandoned carts?')) {
-                // Simulation of bulk email sending
-                showToast('Sending reminders to all users...', 'info');
-                setTimeout(() => {
-                    showToast('Reminders sent successfully!', 'success');
-                }, 2000);
+                showToast('Sending reminders...', 'info');
+                try {
+                    const res = await fetch('/api/admin/abandoned-carts/notify', { method: 'POST' });
+                    const data = await res.json();
+                    if(res.ok) {
+                        showToast(data.message, 'success');
+                    } else {
+                        showToast(data.error || 'Failed to send reminders', 'error');
+                    }
+                } catch(err) {
+                    console.error(err);
+                    showToast('Error sending reminders', 'error');
+                }
             }
         }
 
-        function notifyUser(userId) {
-            // Simulation of single user email
-            showToast('Reminder sent to user!', 'success');
+        async function notifyUser(userId) {
+            try {
+                const res = await fetch(`/api/admin/abandoned-carts/notify/${userId}`, { method: 'POST' });
+                const data = await res.json();
+                if(res.ok) {
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.error || 'Failed to send reminder', 'error');
+                }
+            } catch(err) {
+                console.error(err);
+                showToast('Error sending reminder', 'error');
+            }
         }
     </script>
 </body>
